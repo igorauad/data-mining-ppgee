@@ -1,0 +1,258 @@
+---
+title: "Tratamento de Valores Ausentes"
+author: 'G4: Edinaldo de Alencar / Igor Freire / Ramon Araújo / Ricardo Ribeiro'
+date: "26 de setembro de 2014"
+output:
+  slidy_presentation:
+    incremental: true
+---
+
+## Importação da base de dados
+
+```{r}
+# Mudar para o diretório onde está a base de dados
+setwd(paste("/Users/igorfreire/Documents/Mestrado/UFPA",
+               "/Mineração de Dados/",
+               "Trabalho 1 - Pré-processamento NA's", sep="")); 
+
+# Ler o .csv
+dataset <- read.csv(file = "Sample_Store_Dataset.csv",  
+                    header = TRUE, 
+                    sep = ";", # caractere separador de entradas no .csv
+                    dec = ",", # caractere separador de casas decimais
+                    na.strings = c("Not Specified", "?", ""))
+```
+
+### Notar que é imprescindível definir:
+
+1.  O caractere que separa as entradas no arquivo *.csv* (`sep =`)
+2.  O caractere separador de casas decimais dos atributos numéricos presentes na base de dados (`dec =`) 
+3.  As diferentes entradas na base de dados que representam um valor ausente (`na.strings =`).
+
+**Obs:** Na base fornecida os valores ausentes aparecem como `"Not Specified"` e `"?"`
+
+## Inspeção do conjunto de dados
+
+```{r}
+summary(dataset)
+```
+
+## Inspeção dos atributos com valores ausentes
+
+As linhas a seguir apresentam um "sumário" dos atributos que possuem VA's e salvam os índices das instâncias contendo VA's. Estes índices serão usados posteriormente.
+
+Nota: *NA's*  = *VA's* = Valores Ausentes
+
+### Atributo #1: Order Priority
+
+```{r}
+summary(dataset$Order.Priority)
+
+# Salvar índices das instâncias contendo VA's:
+order_priority_na_index <- which(is.na(dataset$Order.Priority))
+```
+ 
+### Atributo #2: Product Base Margin
+
+```{r}
+summary(dataset$Product.Base.Margin)
+
+# Salvar índices das instâncias contendo VA's:
+product_base_margin_na_index <- which(is.na(dataset$Product.Base.Margin))
+```
+
+### Atributo #3: Product Sub Category
+
+```{r}
+summary(dataset$Product.Sub.Category)
+
+# Salvar índices das instâncias contendo VA's:
+product_sub_category_nas <- which(is.na(dataset$Product.Sub.Category))
+```
+
+## Tratamento dos Valores Ausentes
+
+Métodos Testados:
+
+1. Imputação pela Média ou Moda
+1. Imputação k-Nearest Neighbors (kNN)
+
+##### Biblioteca Utilizada:
+```{r, message=FALSE}
+library(DMwR)
+```
+
+## Imputação pela Média ou Moda
+
+```{r mmImpute, cache=TRUE}
+mmImput_dataset <- centralImputation(dataset)
+```
+
+## Resultados
+
+```{r, echo=FALSE, message=FALSE}
+mode <- function(x) {
+  ux <- unique(x)
+  ux[which.max(tabulate(match(x, ux)))]
+}
+```
+
+### Order Priority
+```{r}
+# NA's "imputados"
+table(mmImput_dataset$Order.Priority[order_priority_na_index])
+
+# Comparar com a moda:
+mode(dataset$Order.Priority)
+```
+
+
+### Product Base Margin
+```{r}
+# Estatisticas originais
+summary(mmImput_dataset$Product.Base.Margin)
+
+# NA's "imputados"
+mmImput_dataset$Product.Base.Margin[product_base_margin_na_index]
+```
+
+### Product Sub Category
+```{r}
+# NA's "imputados"
+table(mmImput_dataset$Product.Sub.Category[product_sub_category_nas])
+
+# Comparar com a moda:
+mode(dataset$Product.Sub.Category)
+```
+
+
+## Imputação k-Nearest Neighbors (kNN)
+
+##### Aplicar a Imputação kNN:
+```{r knn, cache=TRUE}
+preprocessed_dataset <- knnImputation(dataset, k = 3)
+```
+
+`k` determina o número de vizinhos
+
+## Resultados
+
+### Order Priority
+```{r}
+# NA's "imputados"
+table(preprocessed_dataset$Order.Priority[order_priority_na_index])
+
+# Comparar com a moda:
+mode(dataset$Order.Priority)
+```
+
+
+### Product Base Margin
+```{r}
+# Estatisticas originais
+summary(dataset$Product.Base.Margin)
+
+# NA's "imputados"
+preprocessed_dataset$Product.Base.Margin[product_base_margin_na_index]
+```
+
+### Product Sub Category
+```{r}
+# NA's "imputados"
+table(preprocessed_dataset$Product.Sub.Category[product_sub_category_nas])
+
+# Comparar com a moda:
+mode(dataset$Product.Sub.Category)
+```
+
+## Efeito do tratamento de VA's na acurácia de predição 
+
+**Objetivo:** Comparar a acurácia de modelos treinados pelo conjunto de dados com VA's e pelo conjunto de dados pré-processado (cujos VA's foram tratados).
+
+**Estratégia:** 
+
+* Pré-processar a base de dados fazendo imputação 
+* Separar ambas as bases (original e pré-processada) em conjuntos de treinamento e de teste
+* Utilizando o mesmo algoritmo de aprendizado, treinar dois modelos distintos  (a partir do conjunto de treinamento original e do conjunto de treinamento pré-processado)
+* Os modelos devem tentar prever a categoria do produto (`Product.Category`) com base nas variáveis "`Order.Priority`", "`Unit.Price`", "`Shipping.Cost`", "`Ship.Mode`" e "`Product.Base.Margin`".
+
+### Biblioteca utilizada:
+```{r, message=FALSE}
+library(caret)
+```
+
+
+## Particionamento do conjunto de dados:
+
+### Atributos a serem utilizados:
+```{r}
+# Somente alguns atributos (colunas) serão utilizados para o teste:
+selectedCols <- c("Product.Category",
+                  "Order.Priority",
+                  "Unit.Price",
+                  "Shipping.Cost",
+                  "Ship.Mode",
+                  "Product.Base.Margin")
+```
+
+### Particionamento
+
+* 70% alocado para o conjunto de treinamento
+* 30% para o conjunto de testes.
+
+```{r}
+# Gerar indices para particionar o conjunto de dados entre "treinamento" e "teste"
+inTraining <- createDataPartition(dataset$Product.Category, p = 0.7, list = FALSE)
+
+# Conjuntos de "treinamento" e "teste"
+training <- dataset[inTraining, match(selectedCols, colnames(dataset))]
+testing <- dataset[-inTraining, match(selectedCols, colnames(dataset))]
+
+# Treinamento e teste para o conjunto pré-processado (conjunto cujos VA's foram tratados)
+training_preProcessed <- preprocessed_dataset[inTraining, match(selectedCols, colnames(dataset))]
+testing_preProcessed <- preprocessed_dataset[-inTraining, match(selectedCols, colnames(dataset))]
+```
+
+
+## Treinamento dos modelos
+
+### Método utilizado: *Random Forest*
+
+* Modelo treinado a partir do conjunto original:
+
+```{r rf_modelTraining, cache=TRUE, message=FALSE}
+# Modelo para o conjunto de dados original
+rf_model <- train(Product.Category ~ ., method = "rf", data = training)
+```
+
+*  Modelo treinado a partir do conjunto pré-processado:
+
+```{r rf_modelTraining_preProcessed, cache=TRUE, message=FALSE}
+# Modelo para o conjunto de dados pré-processado
+rf_model_preProcessed <- train(Product.Category ~ ., method = "rf", data = training_preProcessed)
+```
+
+## Resultados
+
+### Avaliação da acurácia em conjunto de teste:
+
+* Prever usando modelo treinado a partir do conjunto original:
+```{r predict, cache=TRUE, message=FALSE}
+predictedValues <- predict(rf_model, testing)
+```
+
+* Prever usando modelo treinado a partir do conjunto pré-processado:
+```{r predict_preProcessed, cache=TRUE, message=FALSE}
+predictedValues_preProcessed <- predict(rf_model_preProcessed, testing)
+```
+
+### Matrizes de confusão e acurácias gerais:
+```{r confusionMtx, cache=TRUE}
+# Matrizes de confusão:
+confusionMtx <- confusionMatrix(na.omit(testing)$Product.Category, predictedValues)
+confusionMtx_preProcessed <- confusionMatrix(na.omit(testing)$Product.Category, predictedValues_preProcessed)
+
+# Acurácias:
+confusionMtx$overall
+confusionMtx_preProcessed$overall
+```
