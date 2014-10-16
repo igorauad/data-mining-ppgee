@@ -1,0 +1,150 @@
+---
+title: "Prospecção Séries Temporais"
+author: 'G4: Edinaldo de Alencar / Igor Freire / Ramon Araújo / Ricardo Ribeiro'
+date: "16 de outubro de 2014"
+output:
+  slidy_presentation:
+    incremental: true
+bibliography: bibliography.bib
+---
+
+## Importação da base de dados
+
+
+Pacote utilizado para leitura em formato de séries temporais:
+```{r, message=FALSE}
+library(zoo)
+```
+
+
+Importar as bases de dados utilizando `read.zoo`:
+```{r}
+# Mudar para o diretório onde está a base de dados
+setwd(paste("/Users/igorfreire/Documents/Mestrado/UFPA",
+               "/Mineração de Dados/",
+               "Trabalho 2 - Forecast", sep="")); 
+
+# Ler o .csv como uma série temporal (indexado pela data)
+dataset_diario <- read.zoo(file = "dataset_diario.csv", sep = ";", dec = ",", header = TRUE, 
+        tz = "", index = 1, colClasses = c("fluxo"="numeric"), format = "%d/%m/%y", drop = FALSE)
+# index ->  "The column names or numbers of the data frame in which the index/time is stored""
+# em "format" usa-se y minusculo, pois a data está no formato dd/mm/yy
+
+# Ler o .csv como uma série temporal (indexado pela data)
+dataset_mensal <- read.zoo(file = "dataset_mensal.csv", sep = ";", dec = ",", header = TRUE, 
+        index = 1, tz = "", FUN = as.yearmon, format = "%m/%Y", drop = FALSE)
+# em "format" usa-se Y maiúsculo, pois a data está no formato mm/yyyy
+                    
+```
+
+* `dataset_diario` é uma base com valores de fluxos diários de 2002 à 2009. 
+* `dataset_mensal` é uma base com os valores de fluxo mensais de 1992 à 2009. 
+
+### Notar que é necessário definir:
+
+1.  O caractere que separa as entradas no arquivo *.csv* (`sep =`)
+2.  O caractere separador de casas decimais do atributo numérico presente nas bases de dados (`dec =`) 
+
+## Inspeção do conjunto de dados
+
+* Dataset diário:
+```{r}
+summary(dataset_diario)
+```
+
+**Observar** que a informação sobre os dias da semana é redundante, pois poderia ser obtida através de:
+```{r}
+dia <- weekdays(index(dataset_diario))
+```
+que tem como resultado, por exemplo, para as 10 primeiras amostras da base:
+```{r}
+head(dia, 10)
+```
+o qual pode ser confirmado comparando com as 10 primeiras entradas na coluna "dia" da base:
+```{r}
+head(dataset_diario[,1], 10)
+```
+
+* Dataset diário:
+```{r}
+summary(dataset_mensal)
+```
+
+## Série temporal
+
+Converter os dados para o formato de série temporal no R:
+```{r}
+tsMensal <- ts(dataset_mensal, frequency=12)
+plot(tsMensal, xlab="Anos", ylab="Fluxo")
+```
+
+Decompor a série temporal em:
+
+* Trend: padrão de crescimento ao longo do tempo
+* Seasonal: padrão recorrente em um determinado período de tempo
+* Irregular (random): parte irregular (ruidosa), sem padrão sasonal ou tendência 
+
+```{r}
+plot(decompose(tsMensal), xlab="Anos")
+```
+
+Nota: ver tutoriais em [@hyndmanForecastingR] e [@practicalMachineLearningForecasting]
+
+## Separação dos dados
+
+```{r}
+tsMensalTrain <- window(tsMensal, end=(15-0.01)) # do começo até 15 anos
+tsMensalTest <- window(tsMensal, start=15) # de 15 anos até o fim dos dados (18 anos)
+```
+
+Visualização
+```{r}
+tsMensalTest
+```
+
+## Moving Average (Médias Móveis)
+
+Pacote utilizado
+```{r, message=FALSE}
+library(forecast)
+```
+
+```{r}
+plot(tsMensalTrain)
+lines(ma(tsMensalTrain, order=3), col="red")
+```
+
+
+## Exponential Smoothing
+Ver [@HyndmanAthanasopoulos201310]. O mesmo autor possui um livro somente sobre o assunto em [@HyndmanKoehlerOrdSnyder200807].
+
+Modelo:
+```{r}
+etsMensal <- ets(tsMensalTrain, model="MMM")
+# Multiplicative Error
+# Multiplicative trend
+# Multiplicative Season
+```
+
+Prospecção:
+```{r}
+fcastMensal <- forecast(etsMensal)
+```
+
+Comparar predição com valores reais do conjunto de teste:
+```{r}
+plot(fcastMensal); lines(tsMensalTest, col="red")
+```
+
+## Acurácia
+
+### MAPE: Mean absolute percentage error
+$M = \frac{1}{n} \sum \limits_{t=1}^{n} \left| \frac{A_t - F_t}{A_t} \right|,$ 
+
+onde $A_t$ é o valor verdadeiro, $F_t$ é o valor predito e $n$ é o número de amostras temporais preditas.
+
+```{r}
+accuracy(fcastMensal, tsMensalTest)
+```
+
+## Referências
