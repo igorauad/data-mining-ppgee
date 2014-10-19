@@ -20,20 +20,25 @@ library(zoo)
 Importar as bases de dados utilizando `read.zoo`:
 ```{r}
 # Mudar para o diretório onde está a base de dados
-setwd(paste("/Users/igorfreire/Documents/Mestrado/UFPA",
-               "/Mineração de Dados/",
-               "Trabalho 2 - Forecast", sep="")); 
+setwd(paste("/Users/igorfreire/Documents/Mestrado/UFPA/",
+               "/Mineração de Dados/data-mining-ppgee/",
+               "/trabalho-2-forecast/", sep="")); 
 
-# Ler o .csv como uma série temporal (indexado pela data)
-dataset_diario <- read.zoo(file = "dataset_diario.csv", sep = ";", dec = ",", header = TRUE, 
-        tz = "", index = 1, colClasses = c("fluxo"="numeric"), format = "%d/%m/%y", drop = FALSE)
-# index ->  "The column names or numbers of the data frame in which the index/time is stored""
-# em "format" usa-se y minusculo, pois a data está no formato dd/mm/yy
+# Inicialmente ler a base de dados diários como um data frame (através de read.csv)
+dataframe_diario <- read.csv(file = "dataset_diario.csv", sep = ";", dec = ",", header = TRUE)
+# Em seguida, converter para uma série temporal (lista indexada pela data)
+dataset_diario <- zoo(as.matrix(dataframe_diario[, -1:-2]), as.Date(dataframe_diario[,1], format = "%d/%m/%y"))
+# Obs: em "format" usa-se y minusculo, pois a data está no formato dd/mm/yy
 
+# A função read.zoo() abaixo não retorna lista com vetores categóricos e numéricos ao mesmo tempo.
+# Isto é, se houver dados categóricos e numéricos na base, os numéricos serão convertidos.
+# Por isso, a base com dados diários não foi lida diretamente com read.zoo. A base com dados mensais 
+# pode ser lida diretamente com read.zoo()
 # Ler o .csv como uma série temporal (indexado pela data)
 dataset_mensal <- read.zoo(file = "dataset_mensal.csv", sep = ";", dec = ",", header = TRUE, 
         index = 1, tz = "", FUN = as.yearmon, format = "%m/%Y", drop = FALSE)
-# em "format" usa-se Y maiúsculo, pois a data está no formato mm/yyyy
+# index ->  coluna do arquivo .csv que contém a data
+# Obs: em "format" usa-se Y maiúsculo, pois a data está no formato mm/yyyy
                     
 ```
 
@@ -45,14 +50,9 @@ dataset_mensal <- read.zoo(file = "dataset_mensal.csv", sep = ";", dec = ",", he
 1.  O caractere que separa as entradas no arquivo *.csv* (`sep =`)
 2.  O caractere separador de casas decimais do atributo numérico presente nas bases de dados (`dec =`) 
 
-## Inspeção do conjunto de dados
+## Informação sobre os dias da semana
 
-* Dataset diário:
-```{r}
-summary(dataset_diario)
-```
-
-**Observar** que a informação sobre os dias da semana é redundante, pois poderia ser obtida através de:
+**Observar** que a informação sobre os dias da semana é redundante, pois pode ser obtida através de:
 ```{r}
 dia <- weekdays(index(dataset_diario))
 ```
@@ -62,7 +62,16 @@ head(dia, 10)
 ```
 o qual pode ser confirmado comparando com as 10 primeiras entradas na coluna "dia" da base:
 ```{r}
-head(dataset_diario[,1], 10)
+head(dataframe_diario[,2], 10)
+```
+
+Por isso, na leitura da base em `dataset_diario` esta coluna foi ignorada.
+
+## Inspeção do conjunto de dados
+
+* Dataset diário:
+```{r}
+summary(dataset_diario)
 ```
 
 * Dataset diário:
@@ -74,27 +83,34 @@ summary(dataset_mensal)
 
 Converter os dados para o formato de série temporal no R:
 ```{r}
-tsMensal <- ts(dataset_mensal, frequency=12)
+# Frequency --> numero de observacoes por unidade de tempo 
+# define a unidade de tempo (e.g. 12, unidade de tempo = ano)
+tsMensal <- ts(dataset_mensal, frequency=12, start=1992)
 plot(tsMensal, xlab="Anos", ylab="Fluxo")
+
+# Periodo (unidade de tempo) = ano
+tsDiario <- ts(dataset_diario, start=c(2002,1,1), frequency=365)
+plot(tsDiario, xlab="Anos", ylab="Fluxo")
 ```
+
+## Decomposição da série temporal
 
 Decompor a série temporal em:
 
-* Trend: padrão de crescimento ao longo do tempo
-* Seasonal: padrão recorrente em um determinado período de tempo
-* Irregular (random): parte irregular (ruidosa), sem padrão sasonal ou tendência 
+* *Trend*: padrão de crescimento ao longo do tempo
+* *Seasonal*: padrão recorrente em um determinado período de tempo
+* *Irregular* (random): parte irregular (ruidosa), sem padrão sazonal ou tendência 
 
 ```{r}
 plot(decompose(tsMensal), xlab="Anos")
+plot(decompose(tsDiario), xlab="Anos")
 ```
 
-Nota: ver tutoriais em [@hyndmanForecastingR] e [@practicalMachineLearningForecasting]
-
-## Separação dos dados
+## Separação dos dados (treinamento e teste)
 
 ```{r}
-tsMensalTrain <- window(tsMensal, end=(15-0.01)) # do começo até 15 anos
-tsMensalTest <- window(tsMensal, start=15) # de 15 anos até o fim dos dados (18 anos)
+tsMensalTrain <- window(tsMensal, end=(2006-0.01)) # De Jan 1992 até Dez 2005
+tsMensalTest <- window(tsMensal, start=2006) # De Jan 2006 até Dez 2009
 ```
 
 Visualização
@@ -102,18 +118,75 @@ Visualização
 tsMensalTest
 ```
 
-## Moving Average (Médias Móveis)
+## Métodos simplísticos
 
-Pacote utilizado
+* **Média**: valor futuro predito é a média dos dados históricos
+* **Näive**: valor futuro predito é igual ao último dado observado
+* **Sazonal**: valor futuro predito é igual dado no período anterior (dada uma divisão em períodos que representa a sazonalidade do conjunto) correspondente. Por exemplo, se a sazonalidade está em anos e os dados são mensais, o valor predito no mês de outubro do ano futuro é igual ao valor no mês de outubro observado no ano passado.
+* ***Drift***: valor futuro predito é igual ao último valor observado mais a média da diferença entre dados consecutivos (captura a tendência)
+
+## Avaliação dos Métodos
+Apresenta-se a seguir:
+
+* a predição proporcionada por estes métodos (curva vermelha)
+* intervalos de confiança correspondente aos níveis de confiança 80% (em azul) e 95% (em cinza).
+* acurácias **in-sample** e **out-of-sample**
+
+**Nota**:
+
+* **in-sample**: medida dentro do conjunto no qual os modelos foram treinados.
+* **out-of-sample**: medida no conjunto de testes.
+
+Pacote utilizado (ver [@hyndmanForecastingR] e [@practicalMachineLearningForecasting]):
 ```{r, message=FALSE}
 library(forecast)
 ```
 
+## Avaliação dos Métodos
+
+```{r}
+# Dados de treinamento
+plot(tsMensalTrain)
+mesesAPrever <- 12
+
+# Média
+f_mean <- meanf(tsMensalTrain, h=mesesAPrever)
+plot(f_mean)
+# Acurácia
+accuracy(f_mean, tsMensalTest)
+
+# Näive
+f_naive <- naive(tsMensalTrain, h=mesesAPrever)
+plot(f_naive)
+# Acurácia
+accuracy(f_naive, tsMensalTest)
+
+# Näive Sazonal
+f_seazonal_naive <- snaive(tsMensalTrain, h=mesesAPrever)
+plot(f_seazonal_naive)
+# Acurácia
+accuracy(f_seazonal_naive, tsMensalTest)
+
+# Drift
+f_drift <- rwf(tsMensalTrain, drift = TRUE, h=mesesAPrever)
+plot(f_drift)
+# Acurácia
+accuracy(f_drift, tsMensalTest)
+```
+
+## Moving Average (Médias Móveis)
+
+### Médias móveis de ordem 3:
 ```{r}
 plot(tsMensalTrain)
 lines(ma(tsMensalTrain, order=3), col="red")
 ```
 
+Uma ordem maior implica na utilização de mais dados passados na predição do valor presente. Assim, se as amostras forem pouco correlacionadas para uma escala de tempo maior, uma ordem maior no filtro de médias móveis pode reduzir a acurácia de predição temporal. Há, no entanto, uma troca entre bias e variância. Por exemplo, observar o resultado observado ao utilizar **médias móveis de ordem 11**:
+```{r}
+plot(tsMensalTrain)
+lines(ma(tsMensalTrain, order=11), col="red")
+```
 
 ## Exponential Smoothing
 Ver [@HyndmanAthanasopoulos201310]. O mesmo autor possui um livro somente sobre o assunto em [@HyndmanKoehlerOrdSnyder200807].
