@@ -10,7 +10,6 @@ bibliography: bibliography.bib
 
 ## Importação da base de dados
 
-
 Pacote utilizado para leitura em formato de séries temporais:
 ```{r, message=FALSE}
 library(zoo)
@@ -42,8 +41,8 @@ dataset_mensal <- read.zoo(file = "dataset_mensal.csv", sep = ";", dec = ",", he
                     
 ```
 
-* `dataset_diario` é uma base com valores de fluxos diários de 2002 à 2009. 
-* `dataset_mensal` é uma base com os valores de fluxo mensais de 1992 à 2009. 
+* `dataset_diario` é a base com valores de fluxos diários de 2002 à 2009. 
+* `dataset_mensal` é a base com os valores de fluxo mensais de 1992 à 2009. 
 
 ### Notar que é necessário definir:
 
@@ -79,7 +78,7 @@ summary(dataset_diario)
 summary(dataset_mensal)
 ```
 
-## Série temporal
+## Séries temporais
 
 Converter os dados para o formato de série temporal no R:
 ```{r}
@@ -93,7 +92,7 @@ tsDiario <- ts(dataset_diario, start=c(2002,1,1), frequency=365)
 plot(tsDiario, xlab="Anos", ylab="Fluxo")
 ```
 
-## Decomposição da série temporal
+## Decomposição das séries temporais
 
 Decompor a série temporal em:
 
@@ -106,7 +105,9 @@ plot(decompose(tsMensal), xlab="Anos")
 plot(decompose(tsDiario), xlab="Anos")
 ```
 
-## Separação dos dados (treinamento e teste)
+## Separação dos dados 
+
+Separação da série temporal `tsMensal` em séries contendo dados de treinamento e de teste.
 
 ```{r}
 tsMensalTrain <- window(tsMensal, end=(2006-0.01)) # De Jan 1992 até Dez 2005
@@ -125,11 +126,11 @@ tsMensalTest
 * **Sazonal**: valor futuro predito é igual dado no período anterior (dada uma divisão em períodos que representa a sazonalidade do conjunto) correspondente. Por exemplo, se a sazonalidade está em anos e os dados são mensais, o valor predito no mês de outubro do ano futuro é igual ao valor no mês de outubro observado no ano passado.
 * ***Drift***: valor futuro predito é igual ao último valor observado mais a média da diferença entre dados consecutivos (captura a tendência)
 
-## Avaliação dos Métodos
+## Estratégia de Avaliação dos Métodos
 Apresenta-se a seguir:
 
 * a predição proporcionada por estes métodos (curva vermelha)
-* intervalos de confiança correspondente aos níveis de confiança 80% (em azul) e 95% (em cinza).
+* intervalos de predição correspondentes aos níveis de confiança 80% (em azul) e 95% (em cinza).
 * acurácias **in-sample** e **out-of-sample**
 
 **Nota**:
@@ -142,39 +143,99 @@ Pacote utilizado (ver [@hyndmanForecastingR] e [@practicalMachineLearningForecas
 library(forecast)
 ```
 
+Funções utilizadas:
+
+* `meanf()`
+* `naive()`
+* `snaive()`
+* `rwf()`
+
+Saída: objeto `forecast`, contendo:
+
+* Série Original
+* Predições
+* Método utilizado
+* Intervalos de Predição
+* Resíduos
+
+## Acurácia
+
+Medidores usuais:
+
+* ME: Mean error
+* MAE: Mean absolute error
+* RMSE: Root mean square error
+* MAPE: Mean absolute percentage error
+
+Diferentemente do ME, MAE e RMSE, o medidor MAPE é independente da escala.
+
+### MAPE:
+$M = \frac{1}{n} \sum \limits_{t=1}^{n} \left| \frac{A_t - F_t}{A_t} \right|,$ 
+
+onde $A_t$ é o valor verdadeiro, $F_t$ é o valor predito e $n$ é o número de amostras temporais preditas.
+
 ## Avaliação dos Métodos
 
+#### Série temporal de treinamento
 ```{r}
 # Dados de treinamento
 plot(tsMensalTrain)
-mesesAPrever <- 12
+```
 
+#### Número de meses para os quais deseja-se prever o fluxo
+```{r}
+mesesAPrever <- 12
+```
+
+#### Média
+```{r}
 # Média
 f_mean <- meanf(tsMensalTrain, h=mesesAPrever)
 plot(f_mean)
+lines(tsMensalTest, col="red")
+legend("topleft",legend=c("Real"),col=2,lty=1)
 # Acurácia
 accuracy(f_mean, tsMensalTest)
+```
 
+#### Näive
+```{r}
 # Näive
 f_naive <- naive(tsMensalTrain, h=mesesAPrever)
 plot(f_naive)
+lines(tsMensalTest, col="red")
+legend("topleft",legend=c("Real"),col=2,lty=1)
 # Acurácia
 accuracy(f_naive, tsMensalTest)
+```
 
+#### Näive Sazonal
+```{r}
 # Näive Sazonal
 f_seazonal_naive <- snaive(tsMensalTrain, h=mesesAPrever)
 plot(f_seazonal_naive)
+lines(tsMensalTest, col="red")
+legend("topleft",legend=c("Real"),col=2,lty=1)
 # Acurácia
 accuracy(f_seazonal_naive, tsMensalTest)
+```
 
+#### Drift
+```{r}
 # Drift
 f_drift <- rwf(tsMensalTrain, drift = TRUE, h=mesesAPrever)
 plot(f_drift)
+lines(tsMensalTest, col="red")
+legend("topleft",legend=c("Real"),col=2,lty=1)
 # Acurácia
 accuracy(f_drift, tsMensalTest)
 ```
 
-## Moving Average (Médias Móveis)
+## Modelo médias-móveis
+
+Dado no instante $t$ de uma série temporal é dado pelo valor esperado da variável aleatória acrescida do ruído branco no instante $t$ e a soma ponderada do ruído branco em instantes passados.
+
+O número de instantes passados considerados é dado pela ordem do modelo.
 
 ### Médias móveis de ordem 3:
 ```{r}
@@ -182,10 +243,53 @@ plot(tsMensalTrain)
 lines(ma(tsMensalTrain, order=3), col="red")
 ```
 
-Uma ordem maior implica na utilização de mais dados passados na predição do valor presente. Assim, se as amostras forem pouco correlacionadas para uma escala de tempo maior, uma ordem maior no filtro de médias móveis pode reduzir a acurácia de predição temporal. Há, no entanto, uma troca entre bias e variância. Por exemplo, observar o resultado observado ao utilizar **médias móveis de ordem 11**:
+## Modelo auto regressivo
+
+Dado no instante $t$ de uma série temporal é expresso como a média ponderada dos dados em instantes passados acrescida de ruído branco.
+
+O número de instantes passados considerados é dado pela ordem do modelo.
+
+#### Exemplo:
 ```{r}
+ar_model <- ar(tsMensalTrain)
+```
+
+Ordem escolhida automaticamente:
+```{r}
+ar_model$order
+```
+
+Predição:
+```{r}
+ar_fit <- predict(ar_model, n.ahead = 12)
 plot(tsMensalTrain)
-lines(ma(tsMensalTrain, order=11), col="red")
+lines(ar_fit$pred, col="red")
+```
+
+Acurácia:
+```{r}
+accuracy(ar_fit$pred, tsMensalTest)
+```
+
+## ARIMA
+
+* ARMA: autoregressive moving-average - combinação de ambos
+* ARIMA: ARMA com um passo de diferenciação
+
+Modelo:
+```{r}
+arima_model <- auto.arima(tsMensalTrain)
+```
+
+Predição:
+```{r}
+fcast_arima <- forecast(arima_model, h=mesesAPrever)
+plot(fcast_arima)
+```
+
+Acurácia:
+```{r}
+accuracy(fcast_arima, tsMensalTest)
 ```
 
 ## Exponential Smoothing
@@ -206,18 +310,37 @@ fcastMensal <- forecast(etsMensal)
 
 Comparar predição com valores reais do conjunto de teste:
 ```{r}
-plot(fcastMensal); lines(tsMensalTest, col="red")
+plot(fcastMensal);
+lines(tsMensalTest, col="red")
+legend("topleft",legend=c("Real"),col=2,lty=1)
 ```
 
-## Acurácia
-
-### MAPE: Mean absolute percentage error
-$M = \frac{1}{n} \sum \limits_{t=1}^{n} \left| \frac{A_t - F_t}{A_t} \right|,$ 
-
-onde $A_t$ é o valor verdadeiro, $F_t$ é o valor predito e $n$ é o número de amostras temporais preditas.
-
+Acurácia:
 ```{r}
 accuracy(fcastMensal, tsMensalTest)
+```
+
+## Exponential Smoothing Automático
+
+```{r}
+etsMensal_auto <- ets(tsMensalTrain)
+```
+
+Prospecção:
+```{r}
+fcastMensal_auto <- forecast(etsMensal_auto)
+```
+
+Comparar predição com valores reais do conjunto de teste:
+```{r}
+plot(fcastMensal_auto); 
+lines(tsMensalTest, col="red")
+legend("topleft",legend=c("Real"),col=2,lty=1)
+```
+
+Acurácia:
+```{r}
+accuracy(fcastMensal_auto, tsMensalTest)
 ```
 
 ## Referências
