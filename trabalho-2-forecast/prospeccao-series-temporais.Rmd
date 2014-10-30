@@ -4,7 +4,9 @@ author: 'G4: Edinaldo de Alencar / Igor Freire / Ramon Araújo / Ricardo Ribeiro
 date: "29 de outubro de 2014"
 output:
   slidy_presentation:
-    incremental: true
+    incremental: yes
+  beamer_presentation:
+    incremental: yes
 bibliography: bibliography.bib
 ---
 
@@ -107,7 +109,7 @@ plot(tsDiario, xlab="Anos", ylab="Fluxo")
 ```
 
 ```{r, include=FALSE}
-tsDiario2mth <- window(tsDiario, start=c(2006,2), end=c(2006,61))
+tsDiario2mth <- window(tsDiario, start=c(2008,2), end=c(2008,61))
 ```
 
 ## Decomposição das séries temporais
@@ -172,7 +174,7 @@ Separação de `tsDiario` em conjuntos de treinamento e teste.
 
 #### Conjunto de Treinamento
 ```{r, cache=TRUE}
-tsDiarioTrain <- window(tsDiario, end=c(2005,366)) # De Jan 2002 a Dez 2005
+tsDiarioTrain <- window(tsDiario, end=c(2007,365)) # De Jan 2002 a Dez 2005
 ```
 
 ```{r}
@@ -195,43 +197,43 @@ tsDiarioTrainMszl <- msts(tsDiarioTrain, seasonal.periods=c(7,365.25))
 
 ##### 30 dias:
 ```{r, cache=TRUE}
-tsDiarioTest30Days <- window(tsDiario, start=c(2006,1), end=c(2006,30)) # De 1/1/2006 a 30/1/2006
+tsDiarioTest30Days <- window(tsDiario, start=c(2008,1), end=c(2008,30)) # De 1/1/2006 a 30/1/2006
 ```
 
 ##### 45 dias:
 ```{r, cache=TRUE}
 # 45 dias a partir De 1/1/2006
-tsDiarioTest45Days <- window(tsDiario, start=c(2006,1), end=c(2006,45)) 
+tsDiarioTest45Days <- window(tsDiario, start=c(2008,1), end=c(2008,45)) 
 ```
 
 ### Médio/Longo Prazo
 
 #### Conjunto de Treinamento
 ```{r, cache=TRUE}
-tsMensalTrain <- window(tsMensal, end=c(2005, 12)) # De Jan 1992 a Dez 2005
+tsMensalTrain <- window(tsMensal, end=c(2007, 12)) # De Jan 1992 a Dez 2005
 ```
 
 #### Conjuntos de Teste
 
 ##### 4 meses:
 Separação de `tsMensal` em conjuntos de treinamento e teste:
-```{r, cache=TRUE}
-tsMensalTest4mth <- window(tsMensal, start=2006, end=c(2006,4)) # De Jan 2006 a Mar 2006
+```{r}
+tsMensalTest4mth <- window(tsMensal, start=2008, end=c(2008, 4)) # De Jan 2006 a Mar 2006
 ```
 
 ##### 6 meses:
-```{r, cache=TRUE}
-tsMensalTest6mth <- window(tsMensal, start=2006, end=c(2006,6)) # De Jan 2006 a Jun 2006
+```{r}
+tsMensalTest6mth <- window(tsMensal, start=2008, end=c(2008, 6)) # De Jan 2006 a Jun 2006
 ```
 
 ##### 1 ano:
-```{r, cache=TRUE}
-tsMensalTest1yr <- window(tsMensal, start=2006, end=2007) # De Jan 2006 a Jan 2007
+```{r}
+tsMensalTest1yr <- window(tsMensal, start=2008, end=c(2008, 12)) # De Jan 2006 a Jan 2007
 ```
 
 ##### 2 anos:
-```{r, cache=TRUE}
-tsMensalTest2yr <- window(tsMensal, start=2006, end=(2008)) # De Jan 2006 a Jan 2008
+```{r}
+tsMensalTest2yr <- window(tsMensal, start=2008, end=c(2009, 12)) # De Jan 2006 a Jan 2008
 ```
 
 
@@ -844,7 +846,7 @@ accuracy(fcastMensal1yr_boxcox, tsMensalTest1yr)
 4. Adiciona-se novamente o último período da sazonalidade estimada nos resultados
 
 ```{r}
-mesesAPrever <- 12
+mesesAPrever <- 24
 ```
 
 Dados com sazonalidade removida:
@@ -858,7 +860,7 @@ plot(seasadj(tsMensal.stl))
 stlf_model <- stlf(tsMensalTrain[,1])
 stlf_fcast <- forecast(stlf_model, h=mesesAPrever)
 plot(stlf_fcast, xlab="Anos", ylab="Fluxo Mensal")
-lines(tsMensalTest1yr, col="red")
+lines(tsMensalTest2yr, col="red")
 ```
 
 Acurácia:
