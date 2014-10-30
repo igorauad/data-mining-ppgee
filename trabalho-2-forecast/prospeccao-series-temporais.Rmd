@@ -704,43 +704,18 @@ Ver [@HyndmanAthanasopoulos201310]. O autor possui um livro exclusivamente sobre
 
 ![ETS](./figs/ets.png)
 
-### Há, portanto, 30 métodos distintos.
+Para cada um dos 15 métodos, há dois modelos possíveis: com erro aditivo e com erro multiplicativo. 
 
+### Há, portanto, 30 métodos distintos.
 
 ## Exponential Smoothing no R
 
 * A função `ets(ts)` sem argumentos além da série temporal `ts` determina automaticamente o método apropriado.
 * O algoritmo avalia os 30 métodos e busca aquele que tiver o menor AIC.
-    * AIC: Akaike information criterion: uma estimativa da informação perdida quando um determinado modelo é usado para representar o verdadeiro processo que gera a série temporal.
+    * AIC - "Akaike information criterion": uma estimativa da informação perdida quando um determinado modelo é usado para representar o verdadeiro processo que gera a série temporal.
 * Ao final, o objeto retornado por `ets` apresenta o modelo escolhido e o AIC resultante.
-
-## Método Exponential Smoothing em prospecções de Curto Prazo
-
-```{r}
-diasAPrever <- 30
-```
-
-Modelo:
-```{r, cache=TRUE}
-etsDiario <- ets(tsDiarioTrain)
-```
-
-Prospecção:
-```{r, cache=TRUE}
-fcastDiario30days <- forecast(etsDiario, h=diasAPrever)
-```
-
-Comparar predição com valores reais do conjunto de teste:
-```{r}
-plot(fcastDiario30days, xlab="Anos", ylab="Fluxo Mensal");
-lines(tsDiarioTest30Days, col="red")
-legend("topleft",legend=c("Real"),col=2,lty=1)
-```
-
-Acurácia:
-```{r}
-accuracy(fcastDiario30days, tsDiarioTest30Days)
-```
+* A função `ets` não trabalha com séries cuja sazonalidade é superior a 24 unidades temporais. Portanto, será utilizada somente pra prospecções realizadas com dados mensais (sazonalidade = 12).
+* O modelo `ets` parametrizado automáticamente deve dar resultados muito precisos para prospecções de poucos pontos (por exemplo, 4 pontos). 
 
 ## Método Exponential Smoothing em Médio Prazo
 
@@ -761,7 +736,7 @@ fcastMensal6mth <- forecast(etsMensal, h=mesesAPrever)
 
 Comparar predição com valores reais do conjunto de teste:
 ```{r}
-plot(fcastMensal6mth, xlab="Anos", ylab="Fluxo Mensal");
+plot(fcastMensal6mth, xlab="Anos", ylab="Fluxo Mensal", include = 36);
 lines(tsMensalTest6mth, col="red")
 legend("topleft",legend=c("Real"),col=2,lty=1)
 ```
@@ -785,7 +760,7 @@ fcastMensal1yr <- forecast(etsMensal, h=mesesAPrever)
 
 Comparar predição com valores reais do conjunto de teste:
 ```{r}
-plot(fcastMensal1yr);
+plot(fcastMensal1yr, xlab="Anos", ylab="Fluxo Mensal", include = 48);
 lines(tsMensalTest1yr, col="red")
 legend("topleft",legend=c("Real"),col=2,lty=1)
 ```
@@ -795,13 +770,36 @@ Acurácia:
 accuracy(fcastMensal1yr, tsMensalTest1yr)
 ```
 
-### Usando transformação Box-cox
+Pode-se observar a existência de um fator multiplicativo que não está sendo capturado pelo modelo. Uma transformação Box-Cox pode ser apropriada.
+
+## Transformação Box-Cox
+
+* Apropriado quando dados apresentam diferentes variações em diferentes níveis da série.
+
+* $W_t = \begin{cases} \log\left(y_t\right) & \lambda = 0\\ \frac{(y_t^\lambda - 1)}{\lambda} & \lambda \neq 0\end{cases}$
+
+### Série original
+```{r, cache=TRUE}
+plot(tsMensalTrain, xlab="Anos", ylab="Fluxo Mensal")
+```
+
+### Série transformada
+```{r, cache=TRUE}
+lam <- BoxCox.lambda(tsMensalTrain)
+lam
+tsMensalBoxCox <- BoxCox(x = tsMensalTrain, lam)
+plot(tsMensalBoxCox, col="red")
+```
+
+## Utilizando transformaçnao Box-Cox
+
+Calcula-se o fator $\lambda$ para a transformação e utiliza-se um modelo Exponential Smoothing aditivo (pois os fatores multiplicativos devem ser minimizados pela transformação Box-Cox).
 ```{r, cache=TRUE}
 lam <- BoxCox.lambda(tsMensalTrain)
 etsMensal_boxcox <- ets(tsMensalTrain, additive=TRUE, lambda=lam)
 fcastMensal1yr_boxcox <- forecast(etsMensal_boxcox,  h = mesesAPrever)
 
-plot(fcastMensal1yr_boxcox, include=60)
+plot(fcastMensal1yr_boxcox, include=48)
 lines(tsMensalTest1yr, col="red")
 ```
 
