@@ -1,7 +1,7 @@
 ---
 title: "Prospecção Séries Temporais"
 author: 'G4: Edinaldo de Alencar / Igor Freire / Ramon Araújo / Ricardo Ribeiro'
-date: "29 de outubro de 2014"
+date: "30 de outubro de 2014"
 output:
   slidy_presentation:
     incremental: yes
@@ -21,8 +21,8 @@ library(zoo)
 Importar as bases de dados utilizando `read.zoo`:
 ```{r, cache=TRUE}
 # A base de dados e os scripts R estão no mesmo diretório (o diretório atual)
-setwd(paste("~/Documents/Mestrado/UFPA/Mineração de Dados/data-mining-ppgee/trabalho-2-forecast/", sep=""));
-#setwd(paste("./", sep=""));
+#setwd(paste("~/Documents/Mestrado/UFPA/Mineração de Dados/data-mining-ppgee/trabalho-2-forecast/", sep=""));
+setwd(paste("./", sep=""));
 
 # Inicialmente, ler a base de dados diários como um data frame (através de read.csv)
 dataframe_diario <- read.csv(file = "dataset_diario.csv", sep = ";", dec = ",", header = TRUE)
@@ -120,20 +120,28 @@ Decompor a série temporal em:
 * *Seasonal*: padrão recorrente em um determinado período de tempo.
 * *Irregular* (random): parte irregular (ruidosa), sem padrão sazonal ou tendência.
 
+
+### Fluxo Mensal
 ```{r}
 plot(decompose(tsMensal), xlab="Anos")
+```
+
+### Fluxo Diário
+```{r}
 plot(decompose(tsDiario), xlab="Anos")
 ```
 
-* Observações
-  1. Clara tendência (trend) de subida.
-  2. Sazonalidade de 1 ano.
-  3. No fluxo diário, há sazonalidade semanal. Vide abaixo plot da série em um intervalo arbitrário de 2 meses.
-
+### Fluxo Diário para um intervalo arbitrário de 2 meses
 ```{r, echo=FALSE}
 plot(tsDiario2mth, ylab="Fluxo Diário")
 title("Intervalo arbitrário de 2 meses")
 ```
+
+### Observações
+  1. Clara tendência (trend) de subida.
+  2. Sazonalidade de 1 ano.
+  3. No fluxo diário, há sazonalidade semanal.
+
 
 
 
@@ -178,20 +186,9 @@ tsDiarioTrain <- window(tsDiario, end=c(2007,365)) # De Jan 2002 a Dez 2005
 ```
 
 ```{r}
-plot(tsDiarioTrain, xlab="Anos", ylab="Fluxo Mensal")
+plot(tsDiarioTrain, xlab="Anos", ylab="Fluxo Diário")
 ```
 
-Série temporal diária multi-sazonal
-```{r, cache=TRUE}
-# Considerando sazonalidade semanal e anual
-tsDiarioMSzl <- msts(tsDiario, seasonal.periods=c(7,365.25))
-```
-
-Série temporal multi-sazonal do conjunto de treinamento
-```{r, cache=TRUE}
-# Considerando as sazonalidades semanal e anual
-tsDiarioTrainMszl <- msts(tsDiarioTrain, seasonal.periods=c(7,365.25))
-```
 
 #### Conjuntos de Teste
 
@@ -211,6 +208,10 @@ tsDiarioTest45Days <- window(tsDiario, start=c(2008,1), end=c(2008,45))
 #### Conjunto de Treinamento
 ```{r, cache=TRUE}
 tsMensalTrain <- window(tsMensal, end=c(2007, 12)) # De Jan 1992 a Dez 2005
+```
+
+```{r}
+plot(tsMensalTrain, xlab="Anos", ylab="Fluxo Mensal")
 ```
 
 #### Conjuntos de Teste
@@ -279,10 +280,10 @@ Saída: objeto `forecast`, contendo:
 
 Métricas comparativas usuais:
 
-* ME: Mean Error
-* MAE: Mean Absolute Error
-* RMSE: Root Mean Square Error
-* MAPE: Mean Absolute Percentage Error
+* ME: *Mean Error*
+* MAE: *Mean Absolute Error*
+* RMSE: *Root Mean Square Error*
+* MAPE: *Mean Absolute Percentage Error*
 
 Diferentemente do ME, MAE e RMSE, o medidor MAPE é independente da escala.
 
@@ -309,7 +310,7 @@ Funções utilizadas na biblioteca `forecast`:
 
 ## Exemplo: aplicação em prospecções de Curto Prazo
 
-Prospecções através dos métodos simplísticos para um prazo 30 dias.
+Prospecções através dos métodos simplísticos para um prazo de 30 dias.
 
 #### Série temporal de treinamento
   Fluxo diário de Janeiro de 2002 a Dezembro de 2005
@@ -330,7 +331,7 @@ diasAPrever <- 30
 f_mean <- meanf(tsDiarioTrain, h=diasAPrever)
 ```
 
-```{r, echo=FALSE,}
+```{r, echo=FALSE}
 plot(f_mean, xlab="Anos", ylab="Fluxo Diário", include=365)
 lines(tsDiarioTest30Days, col="red")
 legend("topleft",legend=c("Real"),col=2,lty=1)
@@ -351,7 +352,7 @@ legend("topleft",legend=c("Real"),col=2,lty=1)
 #### Naïve Sazonal
 ```{r, cache=TRUE}
 # Naïve Sazonal
-f_seasonal_naive <- snaive(tsDiarioTrainMszl, h=diasAPrever)
+f_seasonal_naive <- snaive(tsDiarioTrain, h=diasAPrever)
 ```
 
 ```{r, echo=FALSE}
@@ -496,16 +497,6 @@ accuracy(regfcast, tsMensalTest1yr)
 
 
 
-
-## Modelo ARIMA
-
-ARIMA (*Autoregressive Integrated Moving Average*)
-
-Combinação dos modelos:
-
-* auto-regressivo (AR)
-* médias-móveis (MA)
-
 ## Modelo auto-regressivo (AR)
 
 Em um modelo de auto-regressão, prevemos a variável de interesse usando uma combinação linear dos valores passados da variável.
@@ -548,6 +539,33 @@ $y_t = \varphi_1^3 y_{t-3} + \varphi_1^2 e_{t-2}  + \varphi_1 e_{t-1} + e_t$
 e assim por diante. Onde $\varphi_1\in(-1,1)$
 
 
+
+
+
+## Modelo ARIMA
+
+ARIMA (*Autoregressive Integrated Moving Average*)
+
+* Combinação dos modelos:
+    * auto-regressivo (AR)
+    * médias-móveis (MA)
+
+* Método ARMA, acrescido da etapa de integração (I).
+
+* Caso a série temporal seja estacionária, o método se reduz ao ARMA.
+
+### Equação de Predição
+
+$$y(t) = \sum_{i=1}^{p}\varphi_ix(t-i) + \sum_{j=1}^{q}\theta_j\epsilon(t-j)$$
+
+### Notação
+$ARIMA(p,d,q)$, onde:
+
+* p = número de valores passados da variável (AR)
+
+* d = número de diferenças não-sazonais
+
+* q = número de rerros de predição passados (MA)
 
 
 
@@ -620,9 +638,6 @@ Acurácia:
 accuracy(fcast_arima_1yr, tsMensalTest1yr)
 ```
 
-## Método ARIMA - Conclusões
-
-* Para a base de dados em questão, foi satisfatório para prospecções em médio prazo.
 
 
 
@@ -630,10 +645,52 @@ accuracy(fcast_arima_1yr, tsMensalTest1yr)
 
 ## Modelo TBATS
 
-* Modelo estocástico que considera múltiplas sazonalidades.
-* Comumente empregado em previsões diárias.
+* Técnica recente, publicada em 2011 [@tbats_paper2011].
+
+* A sigla TBATS é composta das iniciais das técnicas utilizadas: Trigonométrica, transformação Box-cox, correção de erro pela técnica ARMA, e componentes Trend e Sazonal.
+
+* Desenvolvido para séries temporais com características especiais de sazonalidade.
 
 
+### Justificativa
+
+* Por inspeção visual do fluxo diário, suspeitou-se que a série temporal apresenta sazonalidades semanal e anual.
+
+
+#### Série temporal multi-sazonal do conjunto de treinamento
+```{r, cache=TRUE}
+# Considerando as sazonalidades semanal e anual
+tsDiarioTrainMszl <- msts(tsDiarioTrain, seasonal.periods=c(7,365.25))
+```
+
+```{r, include=FALSE}
+tsDiarioTrainMszl2mth <- msts(tsDiario2mth, seasonal.periods=c(7,365.25))
+```
+
+#### Decomposição do fluxo diário em termos trend+season pelo método TBATS
+```{r, cache=TRUE}
+tbats_model <- tbats(tsDiarioTrainMszl)
+```
+
+```{r}
+plot(tbats_model)
+```
+
+#### Decomposição do fluxo diário em termos trend+season para um intervalo arbitrário de 2 meses
+```{r, cache=TRUE}
+tbats_model2mth <- tbats(tsDiarioTrainMszl2mth)
+```
+
+```{r}
+plot(tbats_model2mth)
+```
+
+
+O método TBATS é indicado para a previsão do fluxo diário, pois:
+
+1. Sazonalidades múltiplas: semanal e anual
+
+2. Sazonalidade semanal é de alta frequência
 
 
 
@@ -699,14 +756,14 @@ accuracy(tbats_fc45Days, tsDiarioTest45Days)
 
 
 
-## Exponential Smoothing
+## *Exponential Smoothing*
 
 * Médias móveis simples pondera igualmente as observações passadas em uma série temporal.
 * Exponential smoothing atribui pesos que decrescem exponencialmente ao longo do tempo, levando em consideração:
     * Erro
     * Tendência
     * Sazonalidade
-* Estes parametros podem ser escolhidos como (e.g. tendência $T_h$, assumindo um termo de nível $l$ e termo de crescimento $b$, para $h$ períodos temporais e $0 < \phi < 1$):
+* Estes parâmetros podem ser escolhidos como (e.g. tendência $T_h$, assumindo um termo de nível $l$ e termo de crescimento $b$, para $h$ períodos temporais e $0 < \phi < 1$):
     * Nulo:    $T_h = l$ 
     * Aditivo:    $T_h = l + bh$
     * Aditivo amortecido:     $T_h = l + \left( \phi + \phi^2 + \cdots + \phi^h \right)b$
@@ -714,7 +771,7 @@ accuracy(tbats_fc45Days, tsDiarioTest45Days)
     * Multiplicativo amortecido:    $T_h = l b^{\left( \phi + \phi^2 + \cdots + \phi^h \right)}$
   
 
-## Exponential Smoothing - 2
+## *Exponential Smoothing* - 2
 
 Ver [@HyndmanAthanasopoulos201310]. O autor possui um livro exclusivamente sobre o assunto em [@HyndmanKoehlerOrdSnyder200807].
 
@@ -724,7 +781,7 @@ Para cada um dos 15 métodos, há dois modelos possíveis: com erro aditivo e co
 
 ### Há, portanto, 30 métodos distintos.
 
-## Exponential Smoothing no R
+## *Exponential Smoothing* no R
 
 * A função `ets(ts)` sem argumentos além da série temporal `ts` determina automaticamente o método apropriado.
 * O algoritmo avalia os 30 métodos e busca aquele que tiver o menor AIC.
@@ -733,7 +790,7 @@ Para cada um dos 15 métodos, há dois modelos possíveis: com erro aditivo e co
 * A função `ets` não trabalha com séries cuja sazonalidade é superior a 24 unidades temporais. Portanto, será utilizada somente pra prospecções realizadas com dados mensais (sazonalidade = 12).
 * O modelo `ets` parametrizado automáticamente deve dar resultados muito precisos para prospecções de poucos pontos (por exemplo, 4 pontos). 
 
-## Método Exponential Smoothing em Médio Prazo
+## Método *Exponential Smoothing* em Médio Prazo
 
 ### Para 6 meses
 ```{r}
@@ -762,7 +819,7 @@ Acurácia:
 accuracy(fcastMensal6mth, tsMensalTest6mth)
 ```
 
-## Método Exponential Smoothing em Longo Prazo
+## Método *Exponential Smoothing* em Longo Prazo
 
 ### Para 1 ano
 ```{r, cache=TRUE}
@@ -795,7 +852,7 @@ Pode-se observar a existência de um fator multiplicativo que não está sendo c
 * $W_t = \begin{cases} \log\left(y_t\right) & \lambda = 0\\ \frac{(y_t^\lambda - 1)}{\lambda} & \lambda \neq 0\end{cases}$
 
 ### Série original
-```{r, cache=TRUE}
+```{r}
 plot(tsMensalTrain, xlab="Anos", ylab="Fluxo Mensal")
 ```
 
@@ -804,10 +861,13 @@ plot(tsMensalTrain, xlab="Anos", ylab="Fluxo Mensal")
 lam <- BoxCox.lambda(tsMensalTrain)
 lam
 tsMensalBoxCox <- BoxCox(x = tsMensalTrain, lam)
+```
+
+```{r}
 plot(tsMensalBoxCox, col="red")
 ```
 
-## Utilizando transformaçnao Box-Cox
+## Utilizando transformação Box-Cox
 
 Calcula-se o fator $\lambda$ para a transformação e utiliza-se um modelo Exponential Smoothing aditivo (pois os fatores multiplicativos devem ser minimizados pela transformação Box-Cox).
 ```{r, cache=TRUE}
@@ -870,3 +930,6 @@ accuracy(stlf_fcast, tsMensalTest1yr)
 
 
 ## Referências
+
+
+
