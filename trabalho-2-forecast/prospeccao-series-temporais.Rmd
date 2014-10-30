@@ -1,0 +1,870 @@
+---
+title: "Prospecção Séries Temporais"
+author: 'G4: Edinaldo de Alencar / Igor Freire / Ramon Araújo / Ricardo Ribeiro'
+date: "29 de outubro de 2014"
+output:
+  slidy_presentation:
+    incremental: true
+bibliography: bibliography.bib
+---
+
+## Importação da base de dados
+
+Pacote utilizado para leitura em formato de séries temporais:
+```{r, message=FALSE}
+library(zoo)
+```
+
+
+Importar as bases de dados utilizando `read.zoo`:
+```{r, cache=TRUE}
+# A base de dados e os scripts R estão no mesmo diretório (o diretório atual)
+setwd(paste("~/Documents/Mestrado/UFPA/Mineração de Dados/data-mining-ppgee/trabalho-2-forecast/", sep=""));
+#setwd(paste("./", sep=""));
+
+# Inicialmente, ler a base de dados diários como um data frame (através de read.csv)
+dataframe_diario <- read.csv(file = "dataset_diario.csv", sep = ";", dec = ",", header = TRUE)
+# Em seguida, converter para uma série temporal (lista indexada pela data)
+dataset_diario <- zoo(as.matrix(dataframe_diario[, -1:-2]), as.Date(dataframe_diario[,1], format = "%d/%m/%y"))
+# Obs: em "format" usa-se y minusculo, pois a data está no formato dd/mm/yy
+
+# A função read.zoo() abaixo não retorna lista com vetores categóricos e numéricos ao mesmo tempo.
+# Isto é, se houver dados categóricos e numéricos na base, os numéricos serão convertidos.
+# Por isso, a base com dados diários não foi lida diretamente com read.zoo. A base com dados mensais 
+# pode ser lida diretamente com read.zoo()
+# Ler o .csv como uma série temporal (indexado pela data)
+dataset_mensal <- read.zoo(file = "dataset_mensal.csv", sep = ";", dec = ",", header = TRUE, 
+        index = 1, tz = "", FUN = as.yearmon, format = "%m/%Y", drop = FALSE)
+# index ->  coluna do arquivo .csv que contém a data
+# Obs: em "format" usa-se Y maiúsculo, pois a data está no formato mm/yyyy
+                    
+```
+
+* `dataset_diario` é a base com valores de fluxos diários de 2002 a 2009. 
+* `dataset_mensal` é a base com os valores de fluxo mensais de 1992 a 2009. 
+
+### Notar que é necessário definir:
+
+1.  O caractere que separa as entradas no arquivo *.csv* (`sep =`)
+2.  O caractere separador de casas decimais do atributo numérico presente nas bases de dados (`dec =`)
+
+## Informação sobre os dias da semana
+
+**Observar** que a informação sobre os dias da semana é redundante, pois pode ser obtida através de:
+```{r}
+dia <- weekdays(index(dataset_diario))
+```
+que tem como resultado, por exemplo, para as 10 primeiras amostras da base:
+```{r}
+head(dia, 10)
+```
+o qual pode ser confirmado comparando com as 10 primeiras entradas na coluna "dia" da base:
+```{r}
+head(dataframe_diario[,2], 10)
+```
+
+Por isso, na leitura da base em `dataset_diario`, esta coluna foi ignorada.
+
+## Inspeção do Conjunto de Dados
+
+* Dataset diário:
+```{r}
+summary(dataset_diario)
+```
+
+* Dataset mensal:
+```{r}
+summary(dataset_mensal)
+```
+
+## Séries Temporais
+
+Conversão dos dados para o formato de série temporal no R.
+
+```{r, include=FALSE}
+library(forecast)
+```
+
+#### Série Mensal:
+```{r, cache=TRUE}
+# Frequency --> número de observações por unidade de tempo 
+# define a unidade de tempo (e.g. 12: unidade de tempo = ano)
+tsMensal <- ts(dataset_mensal, frequency=12, start=1992)
+```
+
+```{r}
+plot(tsMensal, xlab="Anos", ylab="Fluxo Mensal")
+```
+
+#### Série Diária:
+Série temporal diária
+```{r, cache=TRUE}
+tsDiario <- ts(dataset_diario, start=c(2002,1,1), frequency=365)
+```
+
+```{r}
+plot(tsDiario, xlab="Anos", ylab="Fluxo")
+```
+
+```{r, include=FALSE}
+tsDiario2mth <- window(tsDiario, start=c(2006,2), end=c(2006,61))
+```
+
+## Decomposição das séries temporais
+
+Decompor a série temporal em:
+
+* *Trend*: padrão de crescimento ao longo do tempo.
+* *Seasonal*: padrão recorrente em um determinado período de tempo.
+* *Irregular* (random): parte irregular (ruidosa), sem padrão sazonal ou tendência.
+
+```{r}
+plot(decompose(tsMensal), xlab="Anos")
+plot(decompose(tsDiario), xlab="Anos")
+```
+
+* Observações
+  1. Clara tendência (trend) de subida.
+  2. Sazonalidade de 1 ano.
+  3. No fluxo diário, há sazonalidade semanal. Vide abaixo plot da série em um intervalo arbitrário de 2 meses.
+
+```{r, echo=FALSE}
+plot(tsDiario2mth, ylab="Fluxo Diário")
+title("Intervalo arbitrário de 2 meses")
+```
+
+
+
+
+
+
+
+
+
+
+
+## Objetivos
+
+Realizar prospecções de curto, médio e longo prazo.
+
+### Curto Prazo
+  * 30 Dias
+  * 45 Dias
+  
+Para curto prazo, será utilizada a série temporal com dados diários (`tsDiario`). 
+  
+### Médio Prazo
+  * 4 Meses 
+  * 6 Meses
+  
+### Longo Prazo
+  * 1 Ano
+  * 2 Anos
+  
+Para médio e longo prazo, será utilizada a série temporal com dados mensais (`tsMensal`).
+
+## Separação dos dados
+
+Separação das séries temporais em conjuntos de treinamento e de testes.
+
+### Curto Prazo
+Separação de `tsDiario` em conjuntos de treinamento e teste.
+
+#### Conjunto de Treinamento
+```{r, cache=TRUE}
+tsDiarioTrain <- window(tsDiario, end=c(2005,366)) # De Jan 2002 a Dez 2005
+```
+
+```{r}
+plot(tsDiarioTrain, xlab="Anos", ylab="Fluxo Mensal")
+```
+
+Série temporal diária multi-sazonal
+```{r, cache=TRUE}
+# Considerando sazonalidade semanal e anual
+tsDiarioMSzl <- msts(tsDiario, seasonal.periods=c(7,365.25))
+```
+
+Série temporal multi-sazonal do conjunto de treinamento
+```{r, cache=TRUE}
+# Considerando as sazonalidades semanal e anual
+tsDiarioTrainMszl <- msts(tsDiarioTrain, seasonal.periods=c(7,365.25))
+```
+
+#### Conjuntos de Teste
+
+##### 30 dias:
+```{r, cache=TRUE}
+tsDiarioTest30Days <- window(tsDiario, start=c(2006,1), end=c(2006,30)) # De 1/1/2006 a 30/1/2006
+```
+
+##### 45 dias:
+```{r, cache=TRUE}
+# 45 dias a partir De 1/1/2006
+tsDiarioTest45Days <- window(tsDiario, start=c(2006,1), end=c(2006,45)) 
+```
+
+### Médio/Longo Prazo
+
+#### Conjunto de Treinamento
+```{r, cache=TRUE}
+tsMensalTrain <- window(tsMensal, end=c(2005, 12)) # De Jan 1992 a Dez 2005
+```
+
+#### Conjuntos de Teste
+
+##### 4 meses:
+Separação de `tsMensal` em conjuntos de treinamento e teste:
+```{r, cache=TRUE}
+tsMensalTest4mth <- window(tsMensal, start=2006, end=c(2006,4)) # De Jan 2006 a Mar 2006
+```
+
+##### 6 meses:
+```{r, cache=TRUE}
+tsMensalTest6mth <- window(tsMensal, start=2006, end=c(2006,6)) # De Jan 2006 a Jun 2006
+```
+
+##### 1 ano:
+```{r, cache=TRUE}
+tsMensalTest1yr <- window(tsMensal, start=2006, end=2007) # De Jan 2006 a Jan 2007
+```
+
+##### 2 anos:
+```{r, cache=TRUE}
+tsMensalTest2yr <- window(tsMensal, start=2006, end=(2008)) # De Jan 2006 a Jan 2008
+```
+
+
+
+
+
+## Biblioteca Utilizada
+
+Pacote utilizado (ver [@hyndmanForecastingR] e [@practicalMachineLearningForecasting]):
+```{r, message=FALSE}
+library(forecast)
+```
+
+
+
+
+
+## Estratégia de Avaliação dos Métodos
+Apresenta-se a seguir:
+
+* a predição proporcionada por diferentes métodos (curva vermelha).
+* intervalos de predição correspondentes aos níveis de confiança 80% (em azul) e 95% (em cinza).
+* acurácias **in-sample** e **out-of-sample**.
+
+**Nota**:
+
+* **in-sample**: medida no conjunto de treinamento.
+* **out-of-sample**: medida no conjunto de testes.
+
+Saída: objeto `forecast`, contendo:
+
+* Série Original
+
+* Predições
+
+* Método utilizado
+
+* Intervalos de Predição
+
+* Resíduos
+
+## Acurácia
+
+Métricas comparativas usuais:
+
+* ME: Mean Error
+* MAE: Mean Absolute Error
+* RMSE: Root Mean Square Error
+* MAPE: Mean Absolute Percentage Error
+
+Diferentemente do ME, MAE e RMSE, o medidor MAPE é independente da escala.
+
+### MAPE:
+$$M = \frac{1}{n} \sum \limits_{t=1}^{n} \left| \frac{A_t - F_t}{A_t} \right|,$$ 
+
+onde $A_t$ é o valor verdadeiro, $F_t$ é o valor predito e $n$ é o número de amostras temporais preditas.
+
+Como desvantagem, o critério MAPE tem comportamento indefinido quando o valor verdadeiro $A_t=0$ (divisão por zero).
+
+## Métodos simplistas
+
+* Média
+* Naïve
+* Sazonal
+* Drift
+
+Funções utilizadas na biblioteca `forecast`:
+
+* `meanf()`
+* `naive()`
+* `snaive()`
+* `rwf()`
+
+## Exemplo: aplicação em prospecções de Curto Prazo
+
+Prospecções através dos métodos simplísticos para um prazo 30 dias.
+
+#### Série temporal de treinamento
+  Fluxo diário de Janeiro de 2002 a Dezembro de 2005
+```{r, echo=FALSE}
+# Dados de treinamento
+plot(tsDiarioTrain, xlab="Anos", ylab="Fluxo Diário",)
+title("Fluxo diário de treinamento: Jan 2002 a Dez 2005")
+```
+
+#### Número de dias para os quais deseja-se prever o fluxo
+```{r, cache=TRUE}
+diasAPrever <- 30
+```
+
+#### Média
+```{r, cache=TRUE}
+# Média
+f_mean <- meanf(tsDiarioTrain, h=diasAPrever)
+```
+
+```{r, echo=FALSE,}
+plot(f_mean, xlab="Anos", ylab="Fluxo Diário", include=365)
+lines(tsDiarioTest30Days, col="red")
+legend("topleft",legend=c("Real"),col=2,lty=1)
+```
+
+#### Naïve
+```{r, cache=TRUE}
+# Naïve
+f_naive <- naive(tsDiarioTrain, h=diasAPrever)
+```
+
+```{r, echo=FALSE,}
+plot(f_naive, xlab="Anos", ylab="Fluxo Diário", include=365)
+lines(tsDiarioTest30Days, col="red")
+legend("topleft",legend=c("Real"),col=2,lty=1)
+```
+
+#### Naïve Sazonal
+```{r, cache=TRUE}
+# Naïve Sazonal
+f_seasonal_naive <- snaive(tsDiarioTrainMszl, h=diasAPrever)
+```
+
+```{r, echo=FALSE}
+plot(f_seasonal_naive, xlab="Anos", ylab="Fluxo Diário", include=365)
+lines(tsDiarioTest30Days, col="red")
+legend("topleft",legend=c("Real"),col=2,lty=1)
+```
+
+#### Drift
+```{r, cache=TRUE}
+# Drift
+f_drift <- rwf(tsDiarioTrain, drift = TRUE, h=diasAPrever)
+```
+
+```{r, echo=FALSE}
+plot(f_drift, xlab="Anos", ylab="Fluxo Diário", include=365)
+lines(tsDiarioTest30Days, col="red")
+legend("topleft",legend=c("Real"),col=2,lty=1)
+```
+
+```{r, echo=FALSE}
+mape_mean_accuracy <- accuracy(f_mean, tsDiarioTest30Days)[,5]
+mape_naive_accuracy <- accuracy(f_naive, tsDiarioTest30Days)[,5]
+mape_naiveseaz_accuracy <- accuracy(f_seasonal_naive, tsDiarioTest30Days)[,5]
+mape_drif_accuracy <- accuracy(f_drift, tsDiarioTest30Days)[,5]
+
+accuracies <- data.frame(mape_mean_accuracy, 
+                         mape_naive_accuracy, 
+                         mape_naiveseaz_accuracy,
+                         mape_drif_accuracy)
+
+colnames(accuracies) <- c("Mean", "Näive", "N-Sazonal", "Drift")
+```
+
+## Resultados com Métodos simplistas
+
+Acurácias MAPE obtidas.
+
+### Curto prazo (30 dias)
+```{r, echo=FALSE}
+accuracies
+```
+
+### Médio prazo (4 meses)
+```{r, echo=FALSE, cache=TRUE}
+mesesAPrever <- 4
+# Média
+f_mean <- meanf(tsMensalTrain, h=mesesAPrever)
+mape_mean_accuracy <- accuracy(f_mean, tsMensalTest1yr)[,5]
+# Naïve
+f_naive <- naive(tsMensalTrain, h=mesesAPrever)
+mape_naive_accuracy <- accuracy(f_naive, tsMensalTest1yr)[,5]
+# Naïve Sazonal
+f_seasonal_naive <- snaive(tsMensalTrain, h=mesesAPrever)
+mape_naiveseaz_accuracy <- accuracy(f_seasonal_naive, tsMensalTest1yr)[,5]
+# Drift
+f_drift <- rwf(tsMensalTrain, drift = TRUE, h=mesesAPrever)
+mape_drif_accuracy <- accuracy(f_drift, tsMensalTest1yr)[,5]
+
+accuracies <- data.frame(mape_mean_accuracy, 
+                         mape_naive_accuracy, 
+                         mape_naiveseaz_accuracy,
+                         mape_drif_accuracy)
+
+colnames(accuracies) <- c("Mean", "Näive", "N-Sazonal", "Drift")
+
+accuracies
+```
+
+### Longo prazo (1 ano)
+
+```{r, echo=FALSE, cache=TRUE}
+mesesAPrever <- 12
+# Média
+f_mean <- meanf(tsMensalTrain, h=mesesAPrever)
+mape_mean_accuracy <- accuracy(f_mean, tsMensalTest1yr)[,5]
+# Naïve
+f_naive <- naive(tsMensalTrain, h=mesesAPrever)
+mape_naive_accuracy <- accuracy(f_naive, tsMensalTest1yr)[,5]
+# Naïve Sazonal
+f_seasonal_naive <- snaive(tsMensalTrain, h=mesesAPrever)
+mape_naiveseaz_accuracy <- accuracy(f_seasonal_naive, tsMensalTest1yr)[,5]
+# Drift
+f_drift <- rwf(tsMensalTrain, drift = TRUE, h=mesesAPrever)
+mape_drif_accuracy <- accuracy(f_drift, tsMensalTest1yr)[,5]
+
+accuracies <- data.frame(mape_mean_accuracy, 
+                         mape_naive_accuracy, 
+                         mape_naiveseaz_accuracy,
+                         mape_drif_accuracy)
+
+colnames(accuracies) <- c("Mean", "Näive", "N-Sazonal", "Drift")
+
+accuracies
+```
+
+
+
+
+
+
+
+
+
+
+```{r, include=FALSE}
+## Regressão Linear
+
+### 30 dias
+#```{r, cache=TRUE}
+diasAPrever <- 30
+reg <- tslm(tsDiarioTrain ~ trend + season)
+regfcast <- forecast(reg, h=diasAPrever)
+#```
+
+#```{r}
+plot(regfcast, xlab="Anos", ylab="Fluxo Diario", include=120)
+lines(tsDiarioTest30Days, col="red")
+legend("topleft",legend=c("Real"),col=2,lty=1)
+accuracy(regfcast, tsDiarioTest30Days)
+#```
+
+### 1 Ano
+#```{r, cache=TRUE}
+mesesAPrever <- 12
+reg <- tslm(tsMensalTrain ~ trend + season)
+regfcast <- forecast(reg, h=mesesAPrever)
+#```
+
+#```{r}
+plot(regfcast, xlab="Anos", ylab="Fluxo Diario", include=36)
+lines(tsMensalTest1yr, col="red")
+legend("topleft",legend=c("Real"),col=2,lty=1)
+accuracy(regfcast, tsMensalTest1yr)
+#```
+```
+
+
+
+
+
+
+
+
+
+## Modelo ARIMA
+
+ARIMA (*Autoregressive Integrated Moving Average*)
+
+Combinação dos modelos:
+
+* auto-regressivo (AR)
+* médias-móveis (MA)
+
+## Modelo auto-regressivo (AR)
+
+Em um modelo de auto-regressão, prevemos a variável de interesse usando uma combinação linear dos valores passados da variável.
+
+Assim, um modelo auto-regressivo de ordem $p$, denotado por $AR(p)$, pode ser escrito como:
+
+$y_t = c + \varphi_1 y_{t-1} + \varphi_2 y_{t-2} + \dots +  \varphi_p y_{t-p} + e_t,$
+
+onde $c$ é uma constante, $e_t$ o ruído branco, e, os valores defasados de $y_t$ são os preditores.
+
+Para um modelo $AR(1)$, tem-se $\varphi_1\in(-1,1)$
+
+Para um modelo $AR(2)$, tem-se $\varphi_1,\varphi_2\in(-1,1)$ com $\varphi_1 + \varphi_2 < 1$ e $\varphi_2 - \varphi_1 < 1$
+
+## Modelos médias-móveis (MA)
+
+Ao invés de usar valores passados da variável de previsão em uma regressão, o modelo de médias-móveis usa erros de previsão do passado em um modelo de regressão-like.
+
+$y_t = c + e_t + \theta_1 e_{t-1} + \theta_2 e_{t-2} + \dots +  \theta_q e_{t-q}.$
+
+Esse modelo tem ordem $q$ e é denotado por $MA(q)$.
+
+Para um modelo $MA(1)$, tem-se $\theta_1\in(-1,1)$
+
+Para um modelo $MA(2)$, tem-se $\theta_1,\theta_2\in(-1,1)$ com $\theta_1 + \theta_2 > -1$ e $\theta_1 - \theta_2 < 1$
+
+## Relação entre modelos AR e MA
+
+É possível escrever o modelo $AR(p)$ como um modelo $MA(\infty)$. Em particular para um modelo $AR(1)$, vem:
+
+$y_t = \varphi_1 y_{t-1} + e_t$
+
+$y_t = \varphi_1 ( \varphi_1 y_{t-2} + e_{t-1} ) + e_t$
+
+
+$y_t = \varphi_1^2 y_{t-2} + \varphi_1 e_{t-1} + e_t$
+
+$y_t = \varphi_1^3 y_{t-3} + \varphi_1^2 e_{t-2}  + \varphi_1 e_{t-1} + e_t$
+
+e assim por diante. Onde $\varphi_1\in(-1,1)$
+
+
+
+
+
+## Método ARIMA em prospecções de médio prazo
+
+### Para 4 meses
+
+```{r}
+mesesAPrever <- 4
+```
+
+Modelo:
+```{r, cache=TRUE}
+arima_model_mensal <- auto.arima(tsMensalTrain)
+```
+
+Predição:
+```{r}
+fcast_arima_4mth <- forecast(arima_model_mensal, h=mesesAPrever)
+plot(fcast_arima_4mth, xlab="Anos", ylab="Fluxo Mensal", include=36)
+lines(tsMensalTest4mth, col="red")
+```
+
+Acurácia:
+```{r}
+accuracy(fcast_arima_4mth, tsMensalTest4mth)
+```
+
+### Para 6 meses
+
+```{r, cache=TRUE}
+mesesAPrever <- 6
+```
+
+Predição:
+```{r, cache=TRUE}
+fcast_arima_6mth <- forecast(arima_model_mensal, h=mesesAPrever)
+```
+
+```{r}
+plot(fcast_arima_6mth, xlab="Anos", ylab="Fluxo Mensal", include=36)
+lines(tsMensalTest6mth, col="red")
+```
+
+Acurácia:
+```{r}
+accuracy(fcast_arima_6mth, tsMensalTest6mth)
+```
+
+## Método ARIMA em prospecções de longo prazo
+
+### Para 1 ano
+
+```{r, cache=TRUE}
+mesesAPrever <- 12
+```
+
+Predição:
+```{r, cache=TRUE}
+fcast_arima_1yr <- forecast(arima_model_mensal, h=mesesAPrever)
+```
+
+```{r}
+plot(fcast_arima_1yr, include=48)
+lines(tsMensalTest1yr, col="red")
+```
+
+Acurácia:
+```{r}
+accuracy(fcast_arima_1yr, tsMensalTest1yr)
+```
+
+## Método ARIMA - Conclusões
+
+* Para a base de dados em questão, foi satisfatório para prospecções em médio prazo.
+
+
+
+
+
+## Modelo TBATS
+
+* Modelo estocástico que considera múltiplas sazonalidades.
+* Comumente empregado em previsões diárias.
+
+
+
+
+
+
+
+
+
+
+
+## Método TBATS em prospecções de Curto Prazo
+
+### Para 30 dias
+
+```{r}
+diasAPrever <- 30
+```
+
+Modelo, a partir da série multi-sazonal do conjunto de treinamento:
+```{r, cache=TRUE}
+tbats_model <- tbats(tsDiarioTrainMszl)
+```
+
+Predição:
+```{r}
+tbats_fc30Days <- forecast(tbats_model, h=diasAPrever)
+plot(tbats_fc30Days, include = 120)
+lines(tsDiarioTest30Days, col="red")
+legend("topleft",legend=c("Real"),col=2,lty=1)
+```
+
+Acurácia:
+```{r}
+accuracy(tbats_fc30Days, tsDiarioTest30Days)
+```
+
+
+## Método TBATS em prospecções de Curto Prazo
+
+### Para 45 dias
+
+```{r}
+diasAPrever <- 45
+```
+
+Predição:
+```{r}
+tbats_fc45Days <- forecast(tbats_model, h=diasAPrever)
+plot(tbats_fc45Days, include = 120)
+lines(tsDiarioTest45Days, col="red")
+legend("topleft",legend=c("Real"),col=2,lty=1)
+```
+
+Acurácia:
+```{r}
+accuracy(tbats_fc45Days, tsDiarioTest45Days)
+```
+
+
+
+
+
+
+
+
+
+## Exponential Smoothing
+
+* Médias móveis simples pondera igualmente as observações passadas em uma série temporal.
+* Exponential smoothing atribui pesos que decrescem exponencialmente ao longo do tempo, levando em consideração:
+    * Erro
+    * Tendência
+    * Sazonalidade
+* Estes parametros podem ser escolhidos como (e.g. tendência $T_h$, assumindo um termo de nível $l$ e termo de crescimento $b$, para $h$ períodos temporais e $0 < \phi < 1$):
+    * Nulo:    $T_h = l$ 
+    * Aditivo:    $T_h = l + bh$
+    * Aditivo amortecido:     $T_h = l + \left( \phi + \phi^2 + \cdots + \phi^h \right)b$
+    * Multiplicativo:     $T_h = l b^h$
+    * Multiplicativo amortecido:    $T_h = l b^{\left( \phi + \phi^2 + \cdots + \phi^h \right)}$
+  
+
+## Exponential Smoothing - 2
+
+Ver [@HyndmanAthanasopoulos201310]. O autor possui um livro exclusivamente sobre o assunto em [@HyndmanKoehlerOrdSnyder200807].
+
+![ETS](./figs/ets.png)
+
+Para cada um dos 15 métodos, há dois modelos possíveis: com erro aditivo e com erro multiplicativo. 
+
+### Há, portanto, 30 métodos distintos.
+
+## Exponential Smoothing no R
+
+* A função `ets(ts)` sem argumentos além da série temporal `ts` determina automaticamente o método apropriado.
+* O algoritmo avalia os 30 métodos e busca aquele que tiver o menor AIC.
+    * AIC - "Akaike information criterion": uma estimativa da informação perdida quando um determinado modelo é usado para representar o verdadeiro processo que gera a série temporal.
+* Ao final, o objeto retornado por `ets` apresenta o modelo escolhido e o AIC resultante.
+* A função `ets` não trabalha com séries cuja sazonalidade é superior a 24 unidades temporais. Portanto, será utilizada somente pra prospecções realizadas com dados mensais (sazonalidade = 12).
+* O modelo `ets` parametrizado automáticamente deve dar resultados muito precisos para prospecções de poucos pontos (por exemplo, 4 pontos). 
+
+## Método Exponential Smoothing em Médio Prazo
+
+### Para 6 meses
+```{r}
+mesesAPrever <- 6
+```
+
+Modelo:
+```{r, cache=TRUE}
+etsMensal <- ets(tsMensalTrain)
+```
+
+Prospecção:
+```{r, cache=TRUE}
+fcastMensal6mth <- forecast(etsMensal, h=mesesAPrever)
+```
+
+Comparar predição com valores reais do conjunto de teste:
+```{r}
+plot(fcastMensal6mth, xlab="Anos", ylab="Fluxo Mensal", include = 36);
+lines(tsMensalTest6mth, col="red")
+legend("topleft",legend=c("Real"),col=2,lty=1)
+```
+
+Acurácia:
+```{r}
+accuracy(fcastMensal6mth, tsMensalTest6mth)
+```
+
+## Método Exponential Smoothing em Longo Prazo
+
+### Para 1 ano
+```{r, cache=TRUE}
+mesesAPrever <- 12
+```
+
+Prospecção:
+```{r}
+fcastMensal1yr <- forecast(etsMensal, h=mesesAPrever)
+```
+
+Comparar predição com valores reais do conjunto de teste:
+```{r}
+plot(fcastMensal1yr, xlab="Anos", ylab="Fluxo Mensal", include = 48);
+lines(tsMensalTest1yr, col="red")
+legend("topleft",legend=c("Real"),col=2,lty=1)
+```
+
+Acurácia:
+```{r}
+accuracy(fcastMensal1yr, tsMensalTest1yr)
+```
+
+Pode-se observar a existência de um fator multiplicativo que não está sendo capturado pelo modelo. Uma transformação Box-Cox pode ser apropriada.
+
+## Transformação Box-Cox
+
+* Apropriado quando dados apresentam diferentes variações em diferentes níveis da série.
+
+* $W_t = \begin{cases} \log\left(y_t\right) & \lambda = 0\\ \frac{(y_t^\lambda - 1)}{\lambda} & \lambda \neq 0\end{cases}$
+
+### Série original
+```{r, cache=TRUE}
+plot(tsMensalTrain, xlab="Anos", ylab="Fluxo Mensal")
+```
+
+### Série transformada
+```{r, cache=TRUE}
+lam <- BoxCox.lambda(tsMensalTrain)
+lam
+tsMensalBoxCox <- BoxCox(x = tsMensalTrain, lam)
+plot(tsMensalBoxCox, col="red")
+```
+
+## Utilizando transformaçnao Box-Cox
+
+Calcula-se o fator $\lambda$ para a transformação e utiliza-se um modelo Exponential Smoothing aditivo (pois os fatores multiplicativos devem ser minimizados pela transformação Box-Cox).
+```{r, cache=TRUE}
+lam <- BoxCox.lambda(tsMensalTrain)
+etsMensal_boxcox <- ets(tsMensalTrain, additive=TRUE, lambda=lam)
+fcastMensal1yr_boxcox <- forecast(etsMensal_boxcox,  h = mesesAPrever)
+```
+
+```{r}
+plot(fcastMensal1yr_boxcox, include=60)
+lines(tsMensalTest1yr, col="red")
+```
+
+Acurácia:
+```{r, cache=TRUE}
+accuracy(fcastMensal1yr_boxcox, tsMensalTest1yr)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+## Prospecção com decomposição sazonal de Loess - STLF
+
+1. Aplica-se a decomposição STL
+1. Remove-se a sazonalidade da série temporal
+2. Um modelo é treinado na série resultante
+3. Faz-se a prospecção
+4. Adiciona-se novamente o último período da sazonalidade estimada nos resultados
+
+```{r}
+mesesAPrever <- 12
+```
+
+Dados com sazonalidade removida:
+```{r}
+tsMensal.stl <- stl(tsMensalTrain[,1], s.window=12)
+# Seasonally adjusted data constructed by removing the seasonal component.
+plot(seasadj(tsMensal.stl))
+```
+
+```{r}
+stlf_model <- stlf(tsMensalTrain[,1])
+stlf_fcast <- forecast(stlf_model, h=mesesAPrever)
+plot(stlf_fcast, xlab="Anos", ylab="Fluxo Mensal")
+lines(tsMensalTest1yr, col="red")
+```
+
+Acurácia:
+```{r, cache=TRUE}
+accuracy(stlf_fcast, tsMensalTest1yr)
+```
+
+
+## Referências
