@@ -1,7 +1,7 @@
 ---
 title: "Prospecção Séries Temporais"
 author: 'G4: Edinaldo de Alencar / Igor Freire / Ramon Araújo / Ricardo Ribeiro'
-date: "28 de outubro de 2014"
+date: "29 de outubro de 2014"
 output:
   slidy_presentation:
     incremental: true
@@ -123,16 +123,17 @@ plot(decompose(tsMensal), xlab="Anos")
 plot(decompose(tsDiario), xlab="Anos")
 ```
 
-##### Fluxo Diário - Intervalo Arbitrário de 2 meses
-```{r}
+* Observações
+  1. Clara tendência (trend) de subida.
+  2. Sazonalidade de 1 ano.
+  3. No fluxo diário, há sazonalidade semanal. Vide abaixo plot da série em um intervalo arbitrário de 2 meses.
+
+```{r, echo=FALSE}
 plot(tsDiario2mth, ylab="Fluxo Diário")
 title("Intervalo arbitrário de 2 meses")
 ```
 
-* Observações
-  1. Clara tendência (trend) de subida.
-  2. Sazonalidade de 1 ano.
-  3. No fluxo diário, há sazonalidade semanal.
+
 
 
 
@@ -292,10 +293,10 @@ Como desvantagem, o critério MAPE tem comportamento indefinido quando o valor v
 
 ## Métodos simplistas
 
-* **Média**: valor futuro predito é a média dos dados históricos.
-* **Naïve**: valor futuro predito é igual ao último dado observado.
-* **Sazonal**: valor futuro predito é igual dado no período anterior (dada uma divisão em períodos que representa a sazonalidade do conjunto) correspondente. Por exemplo, se a sazonalidade está em anos e os dados são mensais, o valor predito no mês de outubro do ano futuro é igual ao valor no mês de outubro observado no ano passado.
-* ***Drift***: valor futuro predito é igual ao último valor observado mais a média da diferença entre dados consecutivos (captura a tendência).
+* Média
+* Naïve
+* Sazonal
+* Drift
 
 Funções utilizadas na biblioteca `forecast`:
 
@@ -304,14 +305,13 @@ Funções utilizadas na biblioteca `forecast`:
 * `snaive()`
 * `rwf()`
 
-
-## Métodos simplistas em prospecções de Curto Prazo
+## Exemplo: aplicação em prospecções de Curto Prazo
 
 Prospecções através dos métodos simplísticos para um prazo 30 dias.
 
 #### Série temporal de treinamento
   Fluxo diário de Janeiro de 2002 a Dezembro de 2005
-```{r}
+```{r, echo=FALSE}
 # Dados de treinamento
 plot(tsDiarioTrain, xlab="Anos", ylab="Fluxo Diário",)
 title("Fluxo diário de treinamento: Jan 2002 a Dez 2005")
@@ -328,12 +328,10 @@ diasAPrever <- 30
 f_mean <- meanf(tsDiarioTrain, h=diasAPrever)
 ```
 
-```{r}
+```{r, echo=FALSE,}
 plot(f_mean, xlab="Anos", ylab="Fluxo Diário", include=365)
 lines(tsDiarioTest30Days, col="red")
 legend("topleft",legend=c("Real"),col=2,lty=1)
-# Acurácia
-accuracy(f_mean, tsDiarioTest30Days)
 ```
 
 #### Naïve
@@ -342,12 +340,10 @@ accuracy(f_mean, tsDiarioTest30Days)
 f_naive <- naive(tsDiarioTrain, h=diasAPrever)
 ```
 
-```{r}
+```{r, echo=FALSE,}
 plot(f_naive, xlab="Anos", ylab="Fluxo Diário", include=365)
 lines(tsDiarioTest30Days, col="red")
 legend("topleft",legend=c("Real"),col=2,lty=1)
-# Acurácia
-accuracy(f_naive, tsDiarioTest30Days)
 ```
 
 #### Naïve Sazonal
@@ -356,12 +352,10 @@ accuracy(f_naive, tsDiarioTest30Days)
 f_seasonal_naive <- snaive(tsDiarioTrainMszl, h=diasAPrever)
 ```
 
-```{r}
+```{r, echo=FALSE}
 plot(f_seasonal_naive, xlab="Anos", ylab="Fluxo Diário", include=365)
 lines(tsDiarioTest30Days, col="red")
 legend("topleft",legend=c("Real"),col=2,lty=1)
-# Acurácia
-accuracy(f_seasonal_naive, tsDiarioTest30Days)
 ```
 
 #### Drift
@@ -370,26 +364,38 @@ accuracy(f_seasonal_naive, tsDiarioTest30Days)
 f_drift <- rwf(tsDiarioTrain, drift = TRUE, h=diasAPrever)
 ```
 
-```{r}
+```{r, echo=FALSE}
 plot(f_drift, xlab="Anos", ylab="Fluxo Diário", include=365)
 lines(tsDiarioTest30Days, col="red")
 legend("topleft",legend=c("Real"),col=2,lty=1)
-# Acurácia
-accuracy(f_drift, tsDiarioTest30Days)
 ```
 
+```{r, echo=FALSE}
+mape_mean_accuracy <- accuracy(f_mean, tsDiarioTest30Days)[,5]
+mape_naive_accuracy <- accuracy(f_naive, tsDiarioTest30Days)[,5]
+mape_naiveseaz_accuracy <- accuracy(f_seasonal_naive, tsDiarioTest30Days)[,5]
+mape_drif_accuracy <- accuracy(f_drift, tsDiarioTest30Days)[,5]
 
-## Métodos simplistas em prospecções de Médio Prazo
+accuracies <- data.frame(mape_mean_accuracy, 
+                         mape_naive_accuracy, 
+                         mape_naiveseaz_accuracy,
+                         mape_drif_accuracy)
 
-Prospecções através dos métodos simplísticos para um prazo 4 meses.
+colnames(accuracies) <- c("Mean", "Näive", "N-Sazonal", "Drift")
+```
 
-#### Número de meses para os quais deseja-se prever o fluxo
-```{r, cache=TRUE}
+## Resultados com Métodos simplistas
+
+Acurácias MAPE obtidas.
+
+### Curto prazo (30 dias)
+```{r, echo=FALSE}
+accuracies
+```
+
+### Médio prazo (4 meses)
+```{r, echo=FALSE, cache=TRUE}
 mesesAPrever <- 4
-```
-
-#### Comparação dos métodos simplísticos
-```{r, echo=FALSE, cache=TRUE}
 # Média
 f_mean <- meanf(tsMensalTrain, h=mesesAPrever)
 mape_mean_accuracy <- accuracy(f_mean, tsMensalTest1yr)[,5]
@@ -409,40 +415,14 @@ accuracies <- data.frame(mape_mean_accuracy,
                          mape_drif_accuracy)
 
 colnames(accuracies) <- c("Mean", "Näive", "N-Sazonal", "Drift")
-```
 
-```{r, echo=FALSE}
-# plot(f_mean)
-# lines(tsMensalTest6mth, col="red")
-# legend("topleft",legend=c("Real"),col=2,lty=1)
-# plot(f_naive)
-# lines(tsMensalTest6mth, col="red")
-# legend("topleft",legend=c("Real"),col=2,lty=1)
-# plot(f_seasonal_naive)
-# lines(tsMensalTest6mth, col="red")
-# legend("topleft",legend=c("Real"),col=2,lty=1)
-# plot(f_drift); 
-# lines(tsMensalTest6mth, col="red")
-# legend("topleft",legend=c("Real"),col=2,lty=1)
-```
-
-#### Acurácias MAPE
-```{r}
 accuracies
 ```
 
+### Longo prazo (1 ano)
 
-## Métodos simplistas em prospecções de Longo Prazo
-
-Prospecções através dos métodos simplísticos para um prazo 1 ano.
-
-#### Número de meses para os quais deseja-se prever o fluxo
-```{r, cache=TRUE}
+```{r, echo=FALSE, cache=TRUE}
 mesesAPrever <- 12
-```
-
-#### Comparação dos métodos simplísticos
-```{r, echo=FALSE, cache=TRUE}
 # Média
 f_mean <- meanf(tsMensalTrain, h=mesesAPrever)
 mape_mean_accuracy <- accuracy(f_mean, tsMensalTest1yr)[,5]
@@ -462,28 +442,9 @@ accuracies <- data.frame(mape_mean_accuracy,
                          mape_drif_accuracy)
 
 colnames(accuracies) <- c("Mean", "Näive", "N-Sazonal", "Drift")
-```
 
-```{r, echo=FALSE}
-# plot(f_mean)
-# lines(tsMensalTest1yr, col="red")
-# legend("topleft",legend=c("Real"),col=2,lty=1)
-# plot(f_naive)
-# lines(tsMensalTest1yr, col="red")
-# legend("topleft",legend=c("Real"),col=2,lty=1)
-# plot(f_seasonal_naive)
-# lines(tsMensalTest1yr, col="red")
-# legend("topleft",legend=c("Real"),col=2,lty=1)
-# plot(f_drift); 
-# lines(tsMensalTest1yr, col="red")
-# legend("topleft",legend=c("Real"),col=2,lty=1)
-```
-
-#### Acurácias MAPE
-```{r}
 accuracies
 ```
-
 
 
 
@@ -534,109 +495,55 @@ accuracy(regfcast, tsMensalTest1yr)
 
 
 
-## Modelo TBATS
-
-* Modelo estocástico que considera múltiplas sazonalidades.
-* Comumente empregado em previsões diárias.
-
-
-
-
-
-
-
-
-
-
-
-## Método TBATS em prospecções de Curto Prazo
-
-### Para 30 dias
-
-```{r}
-diasAPrever <- 30
-```
-
-Modelo, a partir da série multi-sazonal do conjunto de treinamento:
-```{r, cache=TRUE}
-tbats_model <- tbats(tsDiarioTrainMszl)
-```
-
-Predição:
-```{r}
-tbats_fc30Days <- forecast(tbats_model, h=diasAPrever)
-plot(tbats_fc30Days, include = 120)
-lines(tsDiarioTest30Days, col="red")
-legend("topleft",legend=c("Real"),col=2,lty=1)
-```
-
-Acurácia:
-```{r}
-accuracy(tbats_fc30Days, tsDiarioTest30Days)
-```
-
-
-## Método TBATS em prospecções de Curto Prazo
-
-### Para 45 dias
-
-```{r}
-diasAPrever <- 45
-```
-
-Predição:
-```{r}
-tbats_fc45Days <- forecast(tbats_model, h=diasAPrever)
-plot(tbats_fc45Days, include = 120)
-lines(tsDiarioTest45Days, col="red")
-legend("topleft",legend=c("Real"),col=2,lty=1)
-```
-
-Acurácia:
-```{r}
-accuracy(tbats_fc45Days, tsDiarioTest45Days)
-```
-
-
-
-
-
-
-
 ## Modelo ARIMA
 
 ARIMA (*Autoregressive Integrated Moving Average*)
 
-### Modelo médias-móveis
+Combinação dos modelos:
 
-Dado no instante $t$ de uma série temporal é dado pelo valor esperado da variável aleatória acrescida do ruído branco no instante $t$ e a soma ponderada do ruído branco em instantes passados.
+* auto-regressivo (AR)
+* médias-móveis (MA)
 
-O número de instantes passados considerados é dado pela ordem do modelo.
+## Modelo auto-regressivo (AR)
 
-### Médias móveis de ordem 3:
-```{r}
-plot(tsMensalTrain, xlab="Anos", ylab="Fluxo Mensal")
-movAvg <- ma(tsMensalTrain, order=3)
-lines(movAvg, col="red")
-```
+Em um modelo de auto-regressão, prevemos a variável de interesse usando uma combinação linear dos valores passados da variável.
 
-### Auto-regressive - Modelo auto regressivo (AR)
-Dado no instante $t$ de uma série temporal é expresso como a média ponderada dos dados em instantes passados acrescida de ruído branco.
+Assim, um modelo auto-regressivo de ordem $p$, denotado por $AR(p)$, pode ser escrito como:
 
-O número de instantes passados considerados é dado pela ordem do modelo.
+$y_t = c + \varphi_1 y_{t-1} + \varphi_2 y_{t-2} + \dots +  \varphi_p y_{t-p} + e_t,$
 
-### ARMA
+onde $c$ é uma constante, $e_t$ o ruído branco, e, os valores defasados de $y_t$ são os preditores.
 
-ARMA: autoregressive moving-average - combinação de ambos
+Para um modelo $AR(1)$, tem-se $\varphi_1\in(-1,1)$
 
-### ARIMA
-ARIMA: ARMA com um passo de diferenciação
+Para um modelo $AR(2)$, tem-se $\varphi_1,\varphi_2\in(-1,1)$ com $\varphi_1 + \varphi_2 < 1$ e $\varphi_2 - \varphi_1 < 1$
+
+## Modelos médias-móveis (MA)
+
+Ao invés de usar valores passados da variável de previsão em uma regressão, o modelo de médias-móveis usa erros de previsão do passado em um modelo de regressão-like.
+
+$y_t = c + e_t + \theta_1 e_{t-1} + \theta_2 e_{t-2} + \dots +  \theta_q e_{t-q}.$
+
+Esse modelo tem ordem $q$ e é denotado por $MA(q)$.
+
+Para um modelo $MA(1)$, tem-se $\theta_1\in(-1,1)$
+
+Para um modelo $MA(2)$, tem-se $\theta_1,\theta_2\in(-1,1)$ com $\theta_1 + \theta_2 > -1$ e $\theta_1 - \theta_2 < 1$
+
+## Relação entre modelos AR e MA
+
+É possível escrever o modelo $AR(p)$ como um modelo $MA(\infty)$. Em particular para um modelo $AR(1)$, vem:
+
+$y_t = \varphi_1 y_{t-1} + e_t$
+
+$y_t = \varphi_1 ( \varphi_1 y_{t-2} + e_{t-1} ) + e_t$
 
 
+$y_t = \varphi_1^2 y_{t-2} + \varphi_1 e_{t-1} + e_t$
 
+$y_t = \varphi_1^3 y_{t-3} + \varphi_1^2 e_{t-2}  + \varphi_1 e_{t-1} + e_t$
 
-
-
+e assim por diante. Onde $\varphi_1\in(-1,1)$
 
 
 
@@ -715,7 +622,80 @@ accuracy(fcast_arima_1yr, tsMensalTest1yr)
 
 * Para a base de dados em questão, foi satisfatório para prospecções em médio prazo.
 
-** Sugiro fazer uma conclusão só, ao final do trabalho, dizendo em quais situações cada método foi mais eficaz. **
+
+
+
+
+## Modelo TBATS
+
+* Modelo estocástico que considera múltiplas sazonalidades.
+* Comumente empregado em previsões diárias.
+
+
+
+
+
+
+
+
+
+
+
+## Método TBATS em prospecções de Curto Prazo
+
+### Para 30 dias
+
+```{r}
+diasAPrever <- 30
+```
+
+Modelo, a partir da série multi-sazonal do conjunto de treinamento:
+```{r, cache=TRUE}
+tbats_model <- tbats(tsDiarioTrainMszl)
+```
+
+Predição:
+```{r}
+tbats_fc30Days <- forecast(tbats_model, h=diasAPrever)
+plot(tbats_fc30Days, include = 120)
+lines(tsDiarioTest30Days, col="red")
+legend("topleft",legend=c("Real"),col=2,lty=1)
+```
+
+Acurácia:
+```{r}
+accuracy(tbats_fc30Days, tsDiarioTest30Days)
+```
+
+
+## Método TBATS em prospecções de Curto Prazo
+
+### Para 45 dias
+
+```{r}
+diasAPrever <- 45
+```
+
+Predição:
+```{r}
+tbats_fc45Days <- forecast(tbats_model, h=diasAPrever)
+plot(tbats_fc45Days, include = 120)
+lines(tsDiarioTest45Days, col="red")
+legend("topleft",legend=c("Real"),col=2,lty=1)
+```
+
+Acurácia:
+```{r}
+accuracy(tbats_fc45Days, tsDiarioTest45Days)
+```
+
+
+
+
+
+
+
+
 
 ## Exponential Smoothing
 
@@ -750,34 +730,6 @@ Para cada um dos 15 métodos, há dois modelos possíveis: com erro aditivo e co
 * Ao final, o objeto retornado por `ets` apresenta o modelo escolhido e o AIC resultante.
 * A função `ets` não trabalha com séries cuja sazonalidade é superior a 24 unidades temporais. Portanto, será utilizada somente pra prospecções realizadas com dados mensais (sazonalidade = 12).
 * O modelo `ets` parametrizado automáticamente deve dar resultados muito precisos para prospecções de poucos pontos (por exemplo, 4 pontos). 
-
-## Método Exponential Smoothing em prospecções de Curto Prazo
-
-```{r}
-diasAPrever <- 30
-```
-
-Modelo:
-```{r, message=FALSE, cache=TRUE}
-etsDiario <- ets(tsDiarioTrain)
-```
-
-Prospecção:
-```{r, cache=TRUE}
-fcastDiario30days <- forecast(etsDiario, h=diasAPrever)
-```
-
-Comparar predição com valores reais do conjunto de teste:
-```{r}
-plot(fcastDiario30days, xlab="Anos", ylab="Fluxo Mensal");
-lines(tsDiarioTest30Days, col="red")
-legend("topleft",legend=c("Real"),col=2,lty=1)
-```
-
-Acurácia:
-```{r}
-accuracy(fcastDiario30days, tsDiarioTest30Days)
-```
 
 ## Método Exponential Smoothing em Médio Prazo
 
@@ -883,7 +835,13 @@ accuracy(fcastMensal1yr_boxcox, tsMensalTest1yr)
 
 
 
-## STLF
+## Prospecção com decomposição sazonal de Loess - STLF
+
+1. Aplica-se a decomposição STL
+1. Remove-se a sazonalidade da série temporal
+2. Um modelo é treinado na série resultante
+3. Faz-se a prospecção
+4. Adiciona-se novamente o último período da sazonalidade estimada nos resultados
 
 ```{r}
 mesesAPrever <- 12
