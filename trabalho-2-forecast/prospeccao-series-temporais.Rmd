@@ -101,16 +101,14 @@ plot(tsMensal, xlab="Anos", ylab="Fluxo Mensal")
 #### Série Diária:
 Série temporal diária
 ```{r, cache=TRUE}
-tsDiario <- ts(dataset_diario, start=c(2002,1,1), frequency=365)
+tsDiario <- msts(dataset_diario, start=c(2002,1,1), seasonal.periods=c(7, 365.25))
 ```
 
 ```{r}
 plot(tsDiario, xlab="Anos", ylab="Fluxo")
 ```
 
-```{r, include=FALSE}
-tsDiario2mth <- window(tsDiario, start=c(2008,2), end=c(2008,61))
-```
+**Nota:** 2004 e 2008 foram anos bissextos.
 
 ## Decomposição das séries temporais
 
@@ -131,17 +129,30 @@ plot(decompose(tsMensal), xlab="Anos")
 plot(decompose(tsDiario), xlab="Anos")
 ```
 
-### Fluxo Diário para um intervalo arbitrário de 2 meses
-```{r, echo=FALSE}
-plot(tsDiario2mth, ylab="Fluxo Diário")
-title("Intervalo arbitrário de 2 meses")
-```
-
 ### Observações
   1. Clara tendência (trend) de subida.
   2. Sazonalidade de 1 ano.
-  3. No fluxo diário, há sazonalidade semanal.
+  3. No fluxo diário, há sazonalidade semanal, vide abaixo:
+  
+### Fluxo Diário para um intervalo arbitrário de 8 semanas
+```{r, echo=FALSE}
+# Funcao pra pegar a data em uma série temporal diária
+getDate <- function(ts) {
+  indices <- array()
+  for (i in 1:length(ts)) {
+    indices[i] <- which(dataset_diario == ts[i])
+  }
+  return(index(dataset_diario[indices]))
+}
+```
 
+```{r, echo=FALSE}
+tsDiario_8wWindow <- window(tsDiario, start=c(2008,5), end=c(2008,61))
+plot(tsDiario_8wWindow, ylab="Fluxo Diário", xaxt = 'n', xlab="Dia")
+title("Intervalo arbitrário de 8 semanas")
+axis_labels <- weekdays(getDate(tsDiario_8wWindow))
+axis(side=1, at=index(tsDiario_8wWindow), labels=axis_labels, las=2, cex.axis=0.75)
+```
 
 
 
@@ -182,7 +193,13 @@ Separação de `tsDiario` em conjuntos de treinamento e teste.
 
 #### Conjunto de Treinamento
 ```{r, cache=TRUE}
-tsDiarioTrain <- window(tsDiario, end=c(2007,365)) # De Jan 2002 a Dez 2005
+tsDiarioTrain <- window(tsDiario, end=(2008)) # De Jan 2002 a Dez 2007
+```
+
+#### Confirma se os dias estão corretos:
+Últimos dias da série de treinamento:
+```{r}
+getDate(tail(tsDiarioTrain))
 ```
 
 ```{r}
@@ -194,15 +211,27 @@ plot(tsDiarioTrain, xlab="Anos", ylab="Fluxo Diário")
 
 ##### 30 dias:
 ```{r, cache=TRUE}
-tsDiarioTest30Days <- window(tsDiario, start=c(2008,1), end=c(2008,30)) # De 1/1/2006 a 30/1/2006
+tsDiarioTest30Days <- window(tsDiario, start=2008.001, end=c(2008,30)) # De 1/1/2008 a 30/1/2008
 ```
+
+```{r, echo=FALSE}
+#### Checagem pra verificar se o eixo temporal em tsDiarioTest30Days está correto: 
+plot(window(tsDiario, start=c(2007,280), end=c(2008,40)))
+lines(tsDiarioTest30Days, col="red")
+```
+
 
 ##### 45 dias:
 ```{r, cache=TRUE}
-# 45 dias a partir De 1/1/2006
-tsDiarioTest45Days <- window(tsDiario, start=c(2008,1), end=c(2008,45)) 
+# 45 dias a partir De 1/1/2008
+tsDiarioTest45Days <- window(tsDiario, start=2008.001, end=c(2008,45)) 
 ```
 
+```{r, echo=FALSE}
+#### Checagem pra verificar se o eixo temporal em tsDiarioTest45Days está correto: 
+plot(window(tsDiario, start=c(2007,280), end=c(2008,60)))
+lines(tsDiarioTest45Days, col="red")
+```
 ### Médio/Longo Prazo
 
 #### Conjunto de Treinamento
@@ -656,33 +685,15 @@ accuracy(fcast_arima_1yr, tsMensalTest1yr)
 
 * Por inspeção visual do fluxo diário, suspeitou-se que a série temporal apresenta sazonalidades semanal e anual.
 
-
-#### Série temporal multi-sazonal do conjunto de treinamento
+### Modelo TBATS, a partir da série multi-sazonal do conjunto de treinamento:
 ```{r, cache=TRUE}
-# Considerando as sazonalidades semanal e anual
-tsDiarioTrainMszl <- msts(tsDiarioTrain, seasonal.periods=c(7,365.25))
-```
-
-```{r, include=FALSE}
-tsDiarioTrainMszl2mth <- msts(tsDiario2mth, seasonal.periods=c(7,365.25))
+tbats_model <- tbats(tsDiarioTrain)
+#tbats_model <- tbats(window(tsDiarioTrain, start=2005))
 ```
 
 #### Decomposição do fluxo diário em termos trend+season pelo método TBATS
-```{r, cache=TRUE}
-tbats_model <- tbats(tsDiarioTrainMszl)
-```
-
 ```{r}
 plot(tbats_model)
-```
-
-#### Decomposição do fluxo diário em termos trend+season para um intervalo arbitrário de 2 meses
-```{r, cache=TRUE}
-tbats_model2mth <- tbats(tsDiarioTrainMszl2mth)
-```
-
-```{r}
-plot(tbats_model2mth)
 ```
 
 
@@ -696,21 +707,12 @@ O método TBATS é indicado para a previsão do fluxo diário, pois:
 
 
 
-
-
-
-
 ## Método TBATS em prospecções de Curto Prazo
 
 ### Para 30 dias
 
 ```{r}
 diasAPrever <- 30
-```
-
-Modelo, a partir da série multi-sazonal do conjunto de treinamento:
-```{r, cache=TRUE}
-tbats_model <- tbats(tsDiarioTrainMszl)
 ```
 
 Predição:
