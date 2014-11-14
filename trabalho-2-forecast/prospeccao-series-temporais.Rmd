@@ -648,10 +648,6 @@ datasMensal4mth <- dataset_mensal[193:196]
 mesesFuturo4 <- getMonths( format(index(datasMensal4mth),"%m") )
 
 
-# número de dias úteis nos meses do conjunto de teste (4 meses)
-diasUteisFuturo_4mth <- countWorkDays(datasMensal4mth) - countMthHolidays(datasMensal4mth)
-diasUteisFuturo_4mth <- aperm(diasUteisFuturo_4mth)
-
 
 # datas diárias do conjunto de teste (4 meses)
 datasDiarioTeste4mth_Mensal <- window(index(dataset_diario), start=2192, end=2312)
@@ -780,6 +776,7 @@ accuracy(fcastMensal6mth, tsMensalTest6mth)
 ## Predição a Longo Prazo
 
 * **Prospecção com decomposição sazonal de Loess** (STL)
+* **Rede Neural**
 
 
 
@@ -816,6 +813,13 @@ accuracy(stlf_fcast, tsMensalTest1yr)
 
 
 
+## Rede Neural
+
+![AMOSTRAS_II_EDINALDO](./figs/amostras_II.png)
+
+![EQM_I_EDINALDO](./figs/EQM_I.png)
+
+![ST_MESAL_I_EDINALDO](./figs/ST_MESAL_I.png)
 
 
 ## Predição a curto prazo
