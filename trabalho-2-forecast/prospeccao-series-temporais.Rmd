@@ -122,84 +122,7 @@ isHoliday <- function(dataset) {
   return(returnVec);
 }
 
-countMthHolidays <- function(dataset) {  
-  # Função que verifica se um dado mês em um "dataset" contém feriados 
-  # que não sejam no domingo.
-    
-  # Starting and ending years in 'dataset'
-  startYear <- min(as.numeric(format(index(dataset), "%Y")))
-  endYear <- max(as.numeric(format(index(dataset), "%Y")))
-  yearRange <- startYear:endYear
-  
-  # Declare vector for containing results
-  returnVec <- array(data=0, dim=(endYear - startYear + 1)*12)
-  
-  for (i in 1:length(yearRange) ) {
-    year <- yearRange[i]
-    for (month in 1:12) {
-      # Define feriados fixos:
-      monthHolidays <- holidays[which(as.numeric(format(as.Date(holidays, format="%d/%m"), "%m")) == month)]
-      # Coloca o ano da iteracao corrente na data destes feriados:
-      if(length(monthHolidays) > 0) {
-        monthHolidays <- paste(monthHolidays, year, sep="/")
-      }
-      # Feriados dinamicos:
-      monthDynHolidays <- dynamicHolidays[which(format(as.Date(dynamicHolidays, format="%d/%m/%y"), "%m/%Y") == paste(formatC(month, width=2, flag = "0"), year, sep="/"))]
-      # Formata:
-      monthDynHolidays <- format(as.Date(monthDynHolidays, format="%d/%m/%y"), "%d/%m/%Y")
-      
-      # Define um conjunto que incorpora fixos e dinamicos
-      totalHolidays <- union(monthHolidays, monthDynHolidays)
-        
-      # Para cada feriado do conjunto      
-      for (holiday in totalHolidays) {        
-        #print(month + (i-1)*12)
-        if (weekdays(as.Date(holiday, format="%d/%m/%Y")) != "Domingo") {
-          returnVec[month + (i-1)*12] <- returnVec[month + (i-1)*12] + 1          
-        }
-        #print(as.Date(holiday, format="%d/%m/%Y"))        
-        #print(weekdays(as.Date(holiday, format="%d/%m/%Y")))
-        #print(returnVec[month + (i-1)*12])
-      }
-    }
-  }
-   
-  return(returnVec);
-}
 
-
-countWorkDays <- function(dataset) {  
-  # Função que verifica se um dado mês em um "dataset" contém feriados 
-  # que não sejam no domingo.
-    
-  # Starting and ending years in 'dataset'
-  startYear <- min(as.numeric(format(index(dataset), "%Y")))
-  endYear <- max(as.numeric(format(index(dataset), "%Y")))
-  yearRange <- startYear:endYear
-  
-  # Declare vector for containing results
-  returnVec <- array(data=0, dim=(endYear - startYear + 1)*12)
-  
-  for (i in 1:length(yearRange) ) {
-    year <- yearRange[i]
-    for (month in 1:12) {
-      dateStart = as.Date(paste(01, month, year, sep="/"), format="%d/%m/%Y")
-      if (month < 12) {
-        dateEnd = as.Date(paste(01, month+1, year, sep="/"), format="%d/%m/%Y")
-      } else {
-        dateEnd = as.Date(paste(01, 1, year + 1, sep="/"), format="%d/%m/%Y")
-      }
-    
-      dayRange <- seq(from=dateStart, to=dateEnd, by="1 day")
-      # Exclui a ultima entrada (primeiro dia do outro mês)
-      dayRange <- dayRange[-length(dayRange)]
-      
-      returnVec[month + (i-1)*12] <- sum(!weekdays(dayRange) %in% c("Sábado", "Domingo"))
-    }
-  }
-   
-  return(returnVec);
-}
 
 ## Function to remove repeated entries in vector of labels
 removeRepeated <- function (labels) {
@@ -622,7 +545,7 @@ meses <- getMonths( format(index(datasMensalTrain),"%m") )
 diasSemanasMes_treino <- countWeekdaysPerMonth(datasDiarioTrain_Mensal)
 ```
 
-### Modelo utilizando os regressores adicionais: Indicação dos meses e Quantidade dos dias da semana de cada mês
+### Modelo ARIMA utilizando os regressores: Indicação dos meses e Quantidade dos dias da semana de cada mês
 ```{r, cache=TRUE}
 arima_model_mensal <- auto.arima(tsMensalTrain, approximation=FALSE, lambda=BoxCox.lambda(tsMensalTrain), xreg=cbind(meses,diasSemanasMes_treino))
 ```
@@ -646,7 +569,6 @@ datasMensal4mth <- dataset_mensal[193:196]
 
 # Indica quais são os meses (janeiro, ..., dezembro) do conjunto de testes
 mesesFuturo4 <- getMonths( format(index(datasMensal4mth),"%m") )
-
 
 
 # datas diárias do conjunto de teste (4 meses)
@@ -686,14 +608,14 @@ mesesFuturo6 <- getMonths( format(datasMensal6mth,"%m") )
 # quantas segundas, tercas, ..., domingos há em cada mês do conjunto de teste (6 meses)
 datasDiarioTeste6mth_Mensal <- window(index(dataset_diario), start=2192, end=2373)
 
+# conta quantas segundas,...,domingos há em cada mês do conjunto de teste (6 meses)
 diasSemanasMes_futuro_6mth <- countWeekdaysPerMonth(datasDiarioTeste6mth_Mensal)
-
-
-fcast_arima_6mth <- forecast(arima_model_mensal, xreg=cbind(mesesFuturo6,diasSemanasMes_futuro_6mth), h=mesesAPrever)
 ```
 
 Predição:
 ```{r}
+fcast_arima_6mth <- forecast(arima_model_mensal, xreg=cbind(mesesFuturo6,diasSemanasMes_futuro_6mth), h=mesesAPrever)
+
 plot(fcast_arima_6mth, xlab="Anos", ylab="Fluxo Mensal", include=36)
 lines(tsMensalTest6mth, col="red")
 ```
@@ -710,7 +632,7 @@ accuracy(fcast_arima_6mth, tsMensalTest6mth)
 ## *Exponential Smoothing*
 
 * Médias móveis simples pondera igualmente as observações passadas em uma série temporal.
-* Exponential smoothing atribui pesos que decrescem exponencialmente ao longo do tempo, levando em consideração:
+* *Exponential smoothing* atribui pesos que decrescem exponencialmente ao longo do tempo, levando em consideração:
     * Erro
     * Tendência
     * Sazonalidade
@@ -736,10 +658,10 @@ Para cada um dos 15 métodos, há dois modelos possíveis: com erro aditivo e co
 
 * A função `ets(ts)` sem argumentos além da série temporal `ts` determina automaticamente o método apropriado.
 * O algoritmo avalia os 30 métodos e busca aquele que tiver o menor AIC.
-    * AIC - "Akaike information criterion": uma estimativa da informação perdida quando um determinado modelo é usado para representar o verdadeiro processo que gera a série temporal.
+    * AIC - "Akaike Information Criterion": uma estimativa da informação perdida quando um determinado modelo é usado para representar o verdadeiro processo que gera a série temporal.
 * Ao final, o objeto retornado por `ets` apresenta o modelo escolhido e o AIC resultante.
-* A função `ets` não trabalha com séries cuja sazonalidade é superior a 24 unidades temporais. Portanto, será utilizada somente pra prospecções realizadas com dados mensais (sazonalidade = 12).
-* O modelo `ets` parametrizado automáticamente deve dar resultados muito precisos para prospecções de poucos pontos (por exemplo, 4 pontos). 
+* A função `ets` não trabalha com séries de sazonalidade superior a 24 unidades temporais. Portanto, será utilizada somente para prospecções realizadas com dados mensais (sazonalidade = 12).
+* O modelo `ets` parametrizado automaticamente deve fornecer resultados muito precisos para prospecções de poucos pontos (por exemplo, 4 pontos). 
 
 ## Método *Exponential Smoothing* em Médio Prazo
 
@@ -776,8 +698,8 @@ accuracy(fcastMensal6mth, tsMensalTest6mth)
 ## Predição a Longo Prazo
 
 * **Prospecção com decomposição sazonal de Loess** (STL)
-* **Rede Neural**
 
+* **Rede Neural**
 
 
 ## Prospecção com decomposição sazonal de Loess - STLF
@@ -811,8 +733,6 @@ Acurácia:
 accuracy(stlf_fcast, tsMensalTest1yr)
 ```
 
-
-
 ## Rede Neural
 
 ![AMOSTRAS_II_EDINALDO](./figs/amostras_II.png)
@@ -820,7 +740,6 @@ accuracy(stlf_fcast, tsMensalTest1yr)
 ![EQM_I_EDINALDO](./figs/EQM_I.png)
 
 ![ST_MESAL_I_EDINALDO](./figs/ST_MESAL_I.png)
-
 
 ## Predição a curto prazo
 
@@ -830,8 +749,8 @@ accuracy(stlf_fcast, tsMensalTest1yr)
 ## Rede Neural
 
 ### Pacotes
-```{r, message=FALSE}
-require(quantmod) 
+```{r, warning=FALSE, message=FALSE}
+require(quantmod)
 require(nnet)
 ```
 
@@ -909,7 +828,7 @@ datTest <- dat[-(1:lastTrainIndex),]
 
 ### Modelo
 ```{r}
-model  <- nnet(y ~ ., data = datTrain, repeats=50, size=3, decay=0.01, linout=TRUE, trace=FALSE, 
+model  <- nnet(y ~ ., data = datTrain, repeats=50, size=10, decay=0.127, linout=TRUE, trace=FALSE, 
                maxit=10000)
 model
 ```
@@ -1033,7 +952,7 @@ tbats_model <- tbats(tsDiarioTrain,
                      use.box.cox = TRUE, 
                      use.trend = TRUE, 
                      use.damped.trend = FALSE,
-                     seasonal.periods = c(7, 29.6, 365.25),
+                     seasonal.periods = c(7, 365.25),
                      use.arma.errors = TRUE)                    
 ```
 
@@ -1110,7 +1029,7 @@ accuracy(tbats_fc45Days, tsDiarioTest45Days)
 
 
 
-## Benchmark Métodos Utilizados
+## *Benchmark* dos Métodos Utilizados
 
 <!-- Prospeccoes a curto Prazo -->
 
@@ -1416,6 +1335,3 @@ data.frame(t(acc_train), t(acc_test4mths), t(acc_test6mths), t(acc_test1yr), t(a
 
 
 ## Referências
-
-
-
