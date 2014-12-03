@@ -1,0 +1,173 @@
+---
+title: "Detecção de pontos em Imagens"
+author: 'G4: Edinaldo de Alencar / Igor Freire / Ramon Araújo / Ricardo Ribeiro'
+date: "11 de dezembro de 2014"
+output:
+  slidy_presentation:
+    incremental: yes
+    footer: "G4: Edinaldo de Alencar / Igor Freire / Ramon Araújo / Ricardo Ribeiro"
+  beamer_presentation:
+    incremental: yes
+bibliography: bibliography.bib
+---
+
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+# Load dependencies and dataset
+library(doMC)
+registerDoMC()
+load('./matlab/data/data.Rd')
+```
+
+## Agenda
+
+1. Problemática
+2. Objetivos
+3. Workflow
+4. Pré-processamento e transformações
+5. Algoritmos de Aprendizado
+6. Resultados
+
+
+## Problemática: Detecção de Objetos em Imagens
+
+#### Desafio disponível no *kaggle.com*: "Facial Keypoints Detection''
+* Base de treinamento contendo 7049 imagens e suas coordenadas de pontos chaves: Olhos, Sobrancelhas, Nariz e Boca
+* Base de teste com 1783 imagens
+
+![Base de Imagens Faciais](./figs/gallery.png)
+
+*Dados fornecidos pelo Dr. Yoshua Bengio, da University of Montreal*
+
+
+## Objetivos
+
+Identificar e localizar a boca em uma face humana:
+
+- mouth_left_corner
+- mouth_right_corner
+- mouth_center_top_lip
+- mouth_center_bottom_lip
+
+## Workflow
+
+Falar sobre o workflow de detecção de imagens:
+* Pre-processing
+* Feature Extraction
+* Training
+* Fitting
+
+
+## Pré-processamento
+
+
+## Feature extraction
+
+There are many motivations for using features rather than the pixels directly. The most common reason is that features can act to encode ad-hoc domain knowledge that is difficult to learn using a finite quantity of training data. For this system there is also a second critical motivation for features: the feature-based system operates much faster than a pixel-based system.
+
+## Algoritmos de Aprendizado
+
+* Baseline estatístico: Correlação
+* Algoritmo de Viola-Jones
+* Algoritmo de Gabor
+
+
+## Correlação
+
+Patch médio de todas as bocas na base de dados:
+```{r, echo=FALSE, message=FALSE}
+# Carrega funcao
+source('meanPatch.R')
+```
+
+*mouth_center_top_lip*
+```{r}
+coord      <- "mouth_center_top_lip" 
+patch_size <- 15 # e.g. 10 means we will have a square of 21x21 pixels (10+1+10). 
+search_size <- 15 # e.g. would give a 5x5 (2+1+2) 
+mean.patch <- meanPatch(coord, patch_size, TRUE) 
+```
+
+*mouth_center_bottom_lip*
+```{r}
+coord      <- "mouth_center_bottom_lip" 
+patch_size <- 15 # e.g. 10 means we will have a square of 21x21 pixels (10+1+10). 
+search_size <- 15 # e.g. would give a 5x5 (2+1+2) 
+mean.patch <- meanPatch(coord, patch_size, TRUE) 
+```
+
+*mouth_left_corner*
+```{r}
+coord      <- "mouth_left_corner" 
+patch_size <- 15 # e.g. 10 means we will have a square of 21x21 pixels (10+1+10). 
+search_size <- 15 # e.g. would give a 5x5 (2+1+2) 
+mean.patch <- meanPatch(coord, patch_size, TRUE) 
+```
+
+*mouth_right_corner*
+```{r}
+coord      <- "mouth_right_corner" 
+patch_size <- 15 # e.g. 10 means we will have a square of 21x21 pixels (10+1+10). 
+search_size <- 15 # e.g. would give a 5x5 (2+1+2) 
+mean.patch <- meanPatch(coord, patch_size, TRUE) 
+```
+
+**NOTA**: o
+
+## Predição
+
+```{r}
+source('predictWithCorrelation.R')
+search_size <- 20 # e.g. would give a 5x5 (2+1+2) 
+```
+
+*mouth_center_top_lip*
+```{r, echo=FALSE}
+coord      <- "mouth_center_top_lip" 
+coord_x <- paste(coord, "x", sep="_")
+coord_y <- paste(coord, "y", sep="_")
+patch_size <- 21
+mean.patch <- meanPatch(coord, patch_size, FALSE) 
+```
+
+```{r}
+iImg = 5
+estimated_p <- predictWithCorrelation(coord, search_size, mean.patch, iImg, TRUE) 
+# Plot real point in green circle
+points(96 - d.test[iImg, coord_x], 96 - d.test[iImg, coord_y], col="green")
+# Compute error:
+real_p <- c(d.test$mouth_center_top_lip_x[iImg], d.test$mouth_center_top_lip_y[iImg])
+err <- estimated_p - real_p
+sqrt(mean(err^2))
+```
+
+
+*mouth_center_top_lip*
+```{r, echo=FALSE}
+coord      <- "mouth_center_bottom_lip" 
+coord_x <- paste(coord, "x", sep="_")
+coord_y <- paste(coord, "y", sep="_")
+patch_size <- 10
+mean.patch <- meanPatch(coord, patch_size, FALSE) 
+```
+
+```{r}
+iImg = 1
+estimated_p <- predictWithCorrelation(coord, search_size, mean.patch, iImg, TRUE) 
+# Plot real point in green circle
+points(96 - d.test[iImg, coord_x], 96 - d.test[iImg, coord_y], col="green")
+# Compute error:
+real_p <- c(d.test$mouth_center_top_lip_x[iImg], d.test$mouth_center_top_lip_y[iImg])
+err <- estimated_p - real_p
+sqrt(mean(err^2))
+```
+
+## Algoritmo de Viola-Jones
+
+The cascade classifier consists of stages, where each stage is an ensemble of weak learners. The weak learners are simple classifiers called decision stumps. Each stage is trained using a technique called boosting. Boosting provides the ability to train a highly accurate classifier by taking a weighted average of the decisions made by the weak learners.
+
+Each stage of the classifier labels the region defined by the current location of the sliding window as either positive or negative. Positive indicates an object was found and negative indicates no object. If the label is negative, the classification of this region is complete, and the detector slides the window to the next location. If the label is positive, the classifier passes the region to the next stage. The detector reports an object found at the current window location when the final stage classifies the region as positive.
+
+The stages are designed to reject negative samples as fast as possible. The assumption is that the vast majority of windows do not contain the object of interest. Conversely, true positives are rare, and worth taking the time to verify. A true positive occurs when a positive sample is correctly classified. A false positive occurs when a negative sample is mistakenly classified as positive. A false negative occurs when a positive sample is mistakenly classified as negative. To work well, each stage in the cascade must have a low false negative rate. If a stage incorrectly labels an object as negative, the classification stops, and there is no way to correct the mistake. However, each stage may have a high false positive rate. Even if it incorrectly labels a nonobject as positive, the mistake can be corrected by subsequent stages.
+
+The overall false positive rate of the cascade classifier is fs, where f is the false positive rate per stage in the range (0 1), and s is the number of stages. Similarly, the overall true positive rate is ts, where t is the true positive rate per stage in the range (0 1]. Thus, you can see that adding more stages reduces the overall false-postive rate, but it also reduces the overall true positive rate."
