@@ -42,24 +42,37 @@ load('./matlab/data/data.Rd')
 
 ## Objetivos
 
-Identificar e localizar a boca em uma face humana:
+### Identificar e localizar a boca em uma face humana
 
-- mouth_left_corner
-- mouth_right_corner
-- mouth_center_top_lip
-- mouth_center_bottom_lip
+Dados disponíveis na base:
+
+- 'mouth_left_corner'
+- 'mouth_right_corner'
+- 'mouth_center_top_lip,
+- 'mouth_center_bottom_lip'
+
+### Métrica de Avaliação
+Ajustar "caixa" retangular sobre as coordenadas acima e avaliar o RMSE com relação as dados verdadeiros.
 
 ## Workflow
 
-Falar sobre o workflow de detecção de imagens:
-* Pre-processing
-* Feature Extraction
-* Training
-* Fitting
+###Fluxo de trabalho em detecção de imagens:
+
+1. Pré-processamemto
+2. Extração de *Features*
+3. Treinamento de modelos 
+4. *Fitting*
 
 
 ## Pré-processamento
 
+- Atribuir identificador 'NaN' para dados ausentes
+- Converter imagens na base dadas como vetores 'Char' para matrizes 'Int8' de dimensões $96 \times 96$
+
+## Separação de Dados
+
+- Os dados de teste da base disponibilizada pelo *Kaggle.com* não contém os dados verdadeiros, somente as imagens.
+- Separa-se os dados de treinamento em **Treino** e **Teste**, na proporção de 80 e 20%, respectivamente, amostrados aleatoriamente sem reposição.
 
 ## Feature extraction
 
