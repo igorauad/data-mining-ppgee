@@ -77,8 +77,14 @@ Ajustar "caixa" retangular sobre as coordenadas acima e avaliar o RMSE com rela�
 
 ## Extração de Features
 
-There are many motivations for using features rather than the pixels directly. The most common reason is that features can act to encode ad-hoc domain knowledge that is difficult to learn using a finite quantity of training data. For this system there is also a second critical motivation for features: the feature-based system operates much faster than a pixel-based system.
+### Motivação 
+* Melhor representação do conhecimento, em comparação aos pixels puros
+* O uso de *features* permite operações muito mais rápidas 
 
+### *Features* utilizados
+* Image Patches - método de identifição através da correlação
+* Imagem Integral (*Integral Image Representation*) - citação - método de Viola-Jones
+ 
 ## Algoritmos de Aprendizado
 
 * Baseline estatístico: Correlação
