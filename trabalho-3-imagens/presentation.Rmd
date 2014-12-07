@@ -66,15 +66,16 @@ Ajustar "caixa" retangular sobre as coordenadas acima e avaliar o RMSE com rela�
 
 ## Pré-processamento
 
-- Atribuir identificador 'NaN' para dados ausentes
+- Atribuir identificador 'NaN' para dados  (coordenadas) ausentes
 - Converter imagens na base dadas como vetores 'Char' para matrizes 'Int8' de dimensões $96 \times 96$
+- Para o MATLAB, dividir estas matrizes por 255 e salvar as matrizes resultantes (com elementos de 0 a 1) como imagens em *grayscale* 
 
 ## Separação de Dados
 
 - Os dados de teste da base disponibilizada pelo *Kaggle.com* não contém os dados verdadeiros, somente as imagens.
 - Separa-se os dados de treinamento em **Treino** e **Teste**, na proporção de 80 e 20%, respectivamente, amostrados aleatoriamente sem reposição.
 
-## Feature extraction
+## Extração de Features
 
 There are many motivations for using features rather than the pixels directly. The most common reason is that features can act to encode ad-hoc domain knowledge that is difficult to learn using a finite quantity of training data. For this system there is also a second critical motivation for features: the feature-based system operates much faster than a pixel-based system.
 
