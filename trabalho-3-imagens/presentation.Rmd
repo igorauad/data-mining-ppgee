@@ -23,7 +23,7 @@ load('./matlab/data/data.Rd')
 
 1. Problemática
 2. Objetivos
-3. Workflow
+3. Fluxo de Trabalho
 4. Pré-processamento e transformações
 5. Algoritmos de Aprendizado
 6. Resultados
@@ -46,10 +46,10 @@ load('./matlab/data/data.Rd')
 
 Dados disponíveis na base:
 
-- 'mouth_left_corner'
-- 'mouth_right_corner'
-- 'mouth_center_top_lip,
-- 'mouth_center_bottom_lip'
+- 'mouth_left_corner': canto esquerdo
+- 'mouth_right_corner': canto direito
+- 'mouth_center_top_lip': centro do lábio superior
+- 'mouth_center_bottom_lip': centro do lábio inferior 
 
 ### Métrica de Avaliação
 Ajustar "caixa" retangular sobre as coordenadas acima e avaliar o RMSE com relação as dados verdadeiros.
@@ -72,18 +72,22 @@ Ajustar "caixa" retangular sobre as coordenadas acima e avaliar o RMSE com rela�
 
 ## Separação de Dados
 
-- Os dados de teste da base disponibilizada pelo *Kaggle.com* não contém os dados verdadeiros, somente as imagens.
-- Separa-se os dados de treinamento em **Treino** e **Teste**, na proporção de 80 e 20%, respectivamente, amostrados aleatoriamente sem reposição.
+- Os dados de teste da base disponibilizada pelo *Kaggle.com* não contém os dados verdadeiros, somente as imagens, já que trata-se de uma competição.
+- Por isso, separa-se os dados da base de treinamento em novos conjuntos de **Treino** e **Teste**, na proporção de 80 e 20%, respectivamente, amostrados aleatoriamente sem reposição.
 
 ## Extração de Features
 
 ### Motivação 
-* Melhor representação do conhecimento, em comparação aos pixels puros
+* Melhor representação do conhecimento em comparação aos pixels puros
 * O uso de *features* permite operações muito mais rápidas 
 
 ### *Features* utilizados
 * Image Patches - método de identifição através da correlação
 * Imagem Integral (*Integral Image Representation*) - citação - método de Viola-Jones
+
+## Representação Integral
+
+* "Features" reminescentes das funções base de wavelets Haar
  
 ## Algoritmos de Aprendizado
 
