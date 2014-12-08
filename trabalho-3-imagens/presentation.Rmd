@@ -102,6 +102,13 @@ Ajustar "caixa" retangular sobre as coordenadas acima e avaliar o RMSE com rela�
 * A partir da representação íntegral pode-se: 1) calcular a soma dos valores dos pixels em um retângulo a partir de 4 referências (os cantos); 2) a diferença entre a soma de dois retângulos a partir de 8 referências
 * Ferramenta poderosa pra calcular os "Features" retangulares com baixo custo computacional 
 
+#### Número de referências pra cada *Feature*
+* "dois-retângulos": 6 (reduz-se de 8 pra 6 devido serem adjacentes)
+* "três-retângulos": 8
+* "quatro-retângulos": 9
+
+**Nota**: o conjunto de Features retangulars provê uma representação rica para aprendizado, a qual captura padrões em orientação horizontal, vertical e diagonal.
+
 ## Algoritmos de Aprendizado
 
 * Baseline estatístico: Correlação
