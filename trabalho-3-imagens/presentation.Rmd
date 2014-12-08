@@ -214,6 +214,9 @@ sqrt(mean(err^2))
 ### Construção de classificadores
 * Utilização  de todo o conjunto de Features é proibitiva 
 * Objetivo: combinar um número pequeno de Features para formar um classificador efetivo
+* *AdaBoost*: usado tanto para selecionar um pequeno número de *features* como para treinar o classificador 
+* *Weak learners*:
+* *Boosting*:
 
 The cascade classifier consists of stages, where each stage is an ensemble of weak learners. The weak learners are simple classifiers called decision stumps. Each stage is trained using a technique called boosting. Boosting provides the ability to train a highly accurate classifier by taking a weighted average of the decisions made by the weak learners.
 
