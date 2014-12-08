@@ -228,6 +228,7 @@ If at any stage in the cascade a classifier rejects the sub-window under inspect
 * Falsos-positivos são aceitáveis, enquanto falsos-negativos devem ocorrer em um taxa próxima de 0%
 * **Taxa global de falsos-positivos e de detecção**: dadas pelo produto das taxas individuais de cada estágio
 * Como o objetivo pra taxa global de falsos-positivos é atingir um número tão baixo quanto possível, pode-se utilizar estágios com performances ruins e ainda assim atingir uma performance global satisfatória (exemplo: dois estágios com 60% de falsos-positivos resultam em uma cascata com 36% de falsos-positivos)
+* Em contraste, para uma taxa global de detecção tão próxima quando possível de 100%, os estágios precisam ter performances indivíduos igualmente próximas de 100%
 
 The cascade classifier consists of stages, where each stage is an ensemble of weak learners. The weak learners are simple classifiers called decision stumps. Each stage is trained using a technique called boosting. Boosting provides the ability to train a highly accurate classifier by taking a weighted average of the decisions made by the weak learners.
 
