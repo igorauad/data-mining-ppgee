@@ -83,16 +83,18 @@ Ajustar "caixa" retangular sobre as coordenadas acima e avaliar o RMSE com rela�
 
 ### *Features* utilizados
 * Image Patches - método de identifição através da correlação
-* Imagem Integral (*Integral Image Representation*) - citação - método de Viola-Jones
+* Haar features (features rectangulares) - método de Viola-Jones
 
 ## Features retangulares e a Representação Imagem Integral
 
-* Features retangulares: reminescentes das funções base de wavelets Haar
+* Reminescentes das funções base de wavelets Haar
 
 ### Tipos
 * "dois-retângulos": valor é a diferença entre a soma dos pixels de cada um dos retângulos 
 * "três-retângulos": soma dos pixels nos dois retângulos externos subtraída da soma dos pixels no retângulo interno
-* "quatro-retângulos": diferença entre as somas dos pixels dos pares de retângulos diagonais 
+* "quatro-retângulos": diferença entre as somas dos pixels dos pares de retângulos diagonais
+
+**Nota:** para cada um destes tipos, as dimensões dos retângulos podem ser variadas, o que permite um número extremamente elevado de combinações de features em uma imagem (ex. Uma imagem 24 x 24 possui mais de 160 mil features) 
 
 ### Imagem Integral
 * Esta representação é uma das três contribuições principais do trabalho de Viola-Jones
