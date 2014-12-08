@@ -226,6 +226,8 @@ If at any stage in the cascade a classifier rejects the sub-window under inspect
 * Cada *strong classifier* é treinado somente a partir das amostras que passam dos classificadores precedentes
 * Se em um dado estágio a sub-janela sendo inspecionada for rejeitada (classificada como negativa), o processamento desta sub-janela se encerra é a próxima janela passa a ser inspecionada
 * Falsos-positivos são aceitáveis, enquanto falsos-negativos devem ocorrer em um taxa próxima de 0%
+* **Taxa global de falsos-positivos e de detecção**: dadas pelo produto das taxas individuais de cada estágio
+* Como o objetivo pra taxa global de falsos-positivos é atingir um número tão baixo quanto possível 
 
 The cascade classifier consists of stages, where each stage is an ensemble of weak learners. The weak learners are simple classifiers called decision stumps. Each stage is trained using a technique called boosting. Boosting provides the ability to train a highly accurate classifier by taking a weighted average of the decisions made by the weak learners.
 
