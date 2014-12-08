@@ -205,7 +205,11 @@ err <- estimated_p - real_p
 sqrt(mean(err^2))
 ```
 
-## Algoritmo de Viola-Jones
+## Método de Viola-Jones
+
+1. Representação Integral e extração de Features retangulares
+2. Construção de classificadores através da seleção de Features com AdaBoost
+3. Cascateamento de classificadores
 
 The cascade classifier consists of stages, where each stage is an ensemble of weak learners. The weak learners are simple classifiers called decision stumps. Each stage is trained using a technique called boosting. Boosting provides the ability to train a highly accurate classifier by taking a weighted average of the decisions made by the weak learners.
 
