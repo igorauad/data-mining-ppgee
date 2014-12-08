@@ -107,13 +107,13 @@ Ajustar "caixa" retangular sobre as coordenadas acima e avaliar o RMSE com rela�
 * "três-retângulos": 8
 * "quatro-retângulos": 9
 
-**Nota**: o conjunto de Features retangulars provê uma representação rica para aprendizado, a qual captura padrões em orientação horizontal, vertical e diagonal.
+**Nota #1**: o conjunto de Features retangulars provê uma representação rica para aprendizado, a qual captura padrões em orientação horizontal, vertical e diagonal.
+**Nota #2**: ainda que o custo computacional pra calcular um Feature seja muito baixo, o número de Features possíveis em uma imagem 96 x 96 é tão grande que está computação é proibitiva (vide continuação do método de Viola-Jones)
 
 ## Algoritmos de Aprendizado
 
 * Baseline estatístico: Correlação
 * Algoritmo de Viola-Jones
-
 
 ## Correlação
 
@@ -210,6 +210,8 @@ sqrt(mean(err^2))
 1. Representação Integral e extração de Features retangulares
 2. Construção de classificadores através da seleção de Features com AdaBoost
 3. Cascateamento de classificadores
+
+### Construção de classificadores
 
 The cascade classifier consists of stages, where each stage is an ensemble of weak learners. The weak learners are simple classifiers called decision stumps. Each stage is trained using a technique called boosting. Boosting provides the ability to train a highly accurate classifier by taking a weighted average of the decisions made by the weak learners.
 
