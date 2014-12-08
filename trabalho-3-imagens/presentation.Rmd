@@ -212,6 +212,8 @@ sqrt(mean(err^2))
 3. Cascateamento de classificadores
 
 ### Construção de classificadores
+* Utilização  de todo o conjunto de Features é proibitiva 
+* Objetivo: combinar um número pequeno de Features para formar um classificador efetivo
 
 The cascade classifier consists of stages, where each stage is an ensemble of weak learners. The weak learners are simple classifiers called decision stumps. Each stage is trained using a technique called boosting. Boosting provides the ability to train a highly accurate classifier by taking a weighted average of the decisions made by the weak learners.
 
