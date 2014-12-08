@@ -88,6 +88,12 @@ Ajustar "caixa" retangular sobre as coordenadas acima e avaliar o RMSE com rela�
 ## Representação Integral
 
 * "Features" reminescentes das funções base de wavelets Haar
+* É uma das três contribuições principais do trabalho de Viola-Jones
+
+### Tipos
+* "dois-retângulos": valor é a diferença entre a soma dos pixels de cada um dos retângulos 
+* "três-retângulos": soma dos pixels nos dois retângulos externos subtraída da soma dos pixels no retângulo interno
+* "quatro-retângulos": diferença entre as somas dos pixels dos pares de retângulos diagonais 
  
 ## Algoritmos de Aprendizado
 
