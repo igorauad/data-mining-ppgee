@@ -215,6 +215,7 @@ sqrt(mean(err^2))
 * Utilização  de todo o conjunto de Features é proibitiva 
 * Objetivo: combinar um número pequeno de Features para formar um classificador efetivo
 * *AdaBoost*: usado tanto para selecionar um pequeno número de *features* como para treinar o classificador 
+* **Imagens positivas e negativas**: contém e não contém o objeto alvo, respectivamente
 * *Weak learners*:
 * *Boosting*:
 
