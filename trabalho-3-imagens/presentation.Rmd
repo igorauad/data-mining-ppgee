@@ -32,6 +32,7 @@ load('./matlab/data/data.Rd')
 ## Problemática: Detecção de Objetos em Imagens
 
 #### Desafio disponível no *kaggle.com*: "Facial Keypoints Detection''
+
 * Base de treinamento contendo 7049 imagens e suas coordenadas de pontos chaves: Olhos, Sobrancelhas, Nariz e Boca
 * Base de teste com 1783 imagens
 
@@ -94,6 +95,8 @@ Ajustar "caixa" retangular sobre as coordenadas acima e avaliar o RMSE com rela�
 * "três-retângulos": soma dos pixels nos dois retângulos externos subtraída da soma dos pixels no retângulo interno
 * "quatro-retângulos": diferença entre as somas dos pixels dos pares de retângulos diagonais
 
+![Haar Features](./figs/haar_features.jpg)
+
 **Nota:** para cada um destes tipos, as dimensões dos retângulos podem ser variadas, o que permite um número extremamente elevado de combinações de features em uma imagem (ex. Uma imagem 24 x 24 possui mais de 160 mil features) 
 
 ### Imagem Integral
@@ -105,9 +108,9 @@ Ajustar "caixa" retangular sobre as coordenadas acima e avaliar o RMSE com rela�
 * Ferramenta poderosa pra calcular os "Features" retangulares com baixo custo computacional 
 
 #### Número de referências pra cada *Feature*
-* "dois-retângulos": 6 (reduz-se de 8 pra 6 devido serem adjacentes)
-* "três-retângulos": 8
-* "quatro-retângulos": 9
+* "dois-retângulos" (A e B): 6 (reduz-se de 8 pra 6 devido serem adjacentes)
+* "três-retângulos" (C): 8
+* "quatro-retângulos" (D): 9
 
 **Nota #1**: o conjunto de Features retangulars provê uma representação rica para aprendizado, a qual captura padrões em orientação horizontal, vertical e diagonal.
 **Nota #2**: ainda que o custo computacional pra calcular um Feature seja muito baixo, o número de Features possíveis em uma imagem 96 x 96 é tão grande que está computação é proibitiva (vide continuação do método de Viola-Jones)
@@ -126,7 +129,7 @@ source('meanPatch.R')
 ```
 
 *mouth_center_top_lip*
-```{r}
+```{r, cache=TRUE}
 coord      <- "mouth_center_top_lip" 
 patch_size <- 15 # e.g. 10 means we will have a square of 21x21 pixels (10+1+10). 
 search_size <- 15 # e.g. would give a 5x5 (2+1+2) 
@@ -134,7 +137,7 @@ mean.patch <- meanPatch(coord, patch_size, TRUE)
 ```
 
 *mouth_center_bottom_lip*
-```{r}
+```{r, cache=TRUE}
 coord      <- "mouth_center_bottom_lip" 
 patch_size <- 15 # e.g. 10 means we will have a square of 21x21 pixels (10+1+10). 
 search_size <- 15 # e.g. would give a 5x5 (2+1+2) 
@@ -142,7 +145,7 @@ mean.patch <- meanPatch(coord, patch_size, TRUE)
 ```
 
 *mouth_left_corner*
-```{r}
+```{r, cache=TRUE}
 coord      <- "mouth_left_corner" 
 patch_size <- 15 # e.g. 10 means we will have a square of 21x21 pixels (10+1+10). 
 search_size <- 15 # e.g. would give a 5x5 (2+1+2) 
@@ -150,7 +153,7 @@ mean.patch <- meanPatch(coord, patch_size, TRUE)
 ```
 
 *mouth_right_corner*
-```{r}
+```{r, cache=TRUE}
 coord      <- "mouth_right_corner" 
 patch_size <- 15 # e.g. 10 means we will have a square of 21x21 pixels (10+1+10). 
 search_size <- 15 # e.g. would give a 5x5 (2+1+2) 
@@ -167,7 +170,7 @@ search_size <- 20 # e.g. would give a 5x5 (2+1+2)
 ```
 
 *mouth_center_top_lip*
-```{r, echo=FALSE}
+```{r, echo=FALSE, cache=TRUE}
 coord      <- "mouth_center_top_lip" 
 coord_x <- paste(coord, "x", sep="_")
 coord_y <- paste(coord, "y", sep="_")
@@ -187,8 +190,8 @@ sqrt(mean(err^2))
 ```
 
 
-*mouth_center_top_lip*
-```{r, echo=FALSE}
+*mouth_center_bottom_lip*
+```{r, echo=FALSE, cache=TRUE}
 coord      <- "mouth_center_bottom_lip" 
 coord_x <- paste(coord, "x", sep="_")
 coord_y <- paste(coord, "y", sep="_")
@@ -213,7 +216,7 @@ sqrt(mean(err^2))
 2. Construção de classificadores através da seleção de Features com AdaBoost
 3. Cascateamento de classificadores
 
-### Construção de classificadores
+## Construção de classificadores
 * Utilização  de todo o conjunto de Features é proibitiva 
 * Objetivo: combinar um número pequeno de Features para formar um classificador efetivo
 * *AdaBoost*: usado tanto para selecionar um pequeno número de *features* como para treinar o classificador 
@@ -221,7 +224,7 @@ sqrt(mean(err^2))
 * *Weak learners*: classificadores simples
 * *Boosting*: provê a habilidade de treinar um classificador com alta acurácia a partir da média ponderada das decisões feitas por *weak learners*
 
-### *Strong Classifiers* em cascata
+## *Strong Classifiers* em cascata
 * Formado por estágios
 * Cada estágio é composto por um conjunto de *weak learners*
 If at any stage in the cascade a classifier rejects the sub-window under inspection, no further processing is performed and continue on searching the next sub-window (see figure at right).
@@ -232,6 +235,7 @@ If at any stage in the cascade a classifier rejects the sub-window under inspect
 * Como o objetivo pra taxa global de falsos-positivos é atingir um número tão baixo quanto possível, pode-se utilizar estágios com performances ruins e ainda assim atingir uma performance global satisfatória (exemplo: dois estágios com 60% de falsos-positivos resultam em uma cascata com 36% de falsos-positivos)
 * Em contraste, para uma taxa global de detecção tão próxima quando possível de 100%, os estágios precisam ter performances indivíduos igualmente próximas de 100%
 
+<!--
 The cascade classifier consists of stages, where each stage is an ensemble of weak learners. The weak learners are simple classifiers called decision stumps. Each stage is trained using a technique called boosting. Boosting provides the ability to train a highly accurate classifier by taking a weighted average of the decisions made by the weak learners.
 
 Each stage of the classifier labels the region defined by the current location of the sliding window as either positive or negative. Positive indicates an object was found and negative indicates no object. If the label is negative, the classification of this region is complete, and the detector slides the window to the next location. If the label is positive, the classifier passes the region to the next stage. The detector reports an object found at the current window location when the final stage classifies the region as positive.
@@ -239,3 +243,4 @@ Each stage of the classifier labels the region defined by the current location o
 The stages are designed to reject negative samples as fast as possible. The assumption is that the vast majority of windows do not contain the object of interest. Conversely, true positives are rare, and worth taking the time to verify. A true positive occurs when a positive sample is correctly classified. A false positive occurs when a negative sample is mistakenly classified as positive. A false negative occurs when a positive sample is mistakenly classified as negative. To work well, each stage in the cascade must have a low false negative rate. If a stage incorrectly labels an object as negative, the classification stops, and there is no way to correct the mistake. However, each stage may have a high false positive rate. Even if it incorrectly labels a nonobject as positive, the mistake can be corrected by subsequent stages.
 
 The overall false positive rate of the cascade classifier is fs, where f is the false positive rate per stage in the range (0 1), and s is the number of stages. Similarly, the overall true positive rate is ts, where t is the true positive rate per stage in the range (0 1]. Thus, you can see that adding more stages reduces the overall false-postive rate, but it also reduces the overall true positive rate."
+-->
