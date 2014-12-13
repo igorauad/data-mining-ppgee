@@ -1,7 +1,7 @@
 ---
 title: "Detecção de pontos em Imagens"
 author: 'G4: Edinaldo de Alencar / Igor Freire / Ramon Araújo / Ricardo Ribeiro'
-date: "11 de dezembro de 2014"
+date: "16 de dezembro de 2014"
 output:
   slidy_presentation:
     incremental: yes
@@ -55,36 +55,34 @@ Dados disponíveis na base:
 ### Métrica de Avaliação
 Ajustar "caixa" retangular sobre as coordenadas acima e avaliar o RMSE com relação as dados verdadeiros.
 
-## Workflow
+## Fluxo de Trabalho
 
-###Fluxo de trabalho em detecção de imagens:
-
-1. Pré-processamemto
-2. Extração de *Features*
-3. Treinamento de modelos 
-4. *Fitting*
-
+![Fluxo de Trabalho](./figs/workflow.png)
 
 ## Pré-processamento
 
-- Atribuir identificador 'NaN' para dados  (coordenadas) ausentes
-- Converter imagens na base dadas como vetores 'Char' para matrizes 'Int8' de dimensões $96 \times 96$
+- Atribuir identificador `NaN` para dados  (coordenadas) ausentes
+- Converter imagens na base dadas como vetores 'Char' para matrizes `Int8` de dimensões $96 \times 96$
 - Para o MATLAB, dividir estas matrizes por 255 e salvar as matrizes resultantes (com elementos de 0 a 1) como imagens em *grayscale* 
 
 ## Separação de Dados
 
 - Os dados de teste da base disponibilizada pelo *Kaggle.com* não contém os dados verdadeiros, somente as imagens, já que trata-se de uma competição.
-- Por isso, separa-se os dados da base de treinamento em novos conjuntos de **Treino** e **Teste**, na proporção de 80 e 20%, respectivamente, amostrados aleatoriamente sem reposição.
+- Separa-se os dados da base de treinamento em novos conjuntos de **Treino** e **Teste**:
+- - 80% treino
+- - 20% teste
 
-## Extração de Features
+## Extração de Features e *Patches*
 
 ### Motivação 
 * Melhor representação do conhecimento em comparação aos pixels puros
 * O uso de *features* permite operações muito mais rápidas 
 
 ### *Features* utilizados
-* Image Patches - método de identifição através da correlação
 * Haar features (features rectangulares) - método de Viola-Jones
+
+### Image *Patches*
+* Usado no método de identifição através da correlação
 
 ## Features retangulares e a Representação Imagem Integral
 
@@ -160,8 +158,6 @@ search_size <- 15 # e.g. would give a 5x5 (2+1+2)
 mean.patch <- meanPatch(coord, patch_size, TRUE) 
 ```
 
-**NOTA**: o
-
 ## Predição
 
 ```{r}
@@ -200,7 +196,49 @@ mean.patch <- meanPatch(coord, patch_size, FALSE)
 ```
 
 ```{r}
-iImg = 1
+iImg = 4
+estimated_p <- predictWithCorrelation(coord, search_size, mean.patch, iImg, TRUE) 
+# Plot real point in green circle
+points(96 - d.test[iImg, coord_x], 96 - d.test[iImg, coord_y], col="green")
+# Compute error:
+real_p <- c(d.test$mouth_center_top_lip_x[iImg], d.test$mouth_center_top_lip_y[iImg])
+err <- estimated_p - real_p
+sqrt(mean(err^2))
+```
+
+
+*mouth_left_corner*
+```{r, echo=FALSE, cache=TRUE}
+coord      <- "mouth_left_corner" 
+coord_x <- paste(coord, "x", sep="_")
+coord_y <- paste(coord, "y", sep="_")
+patch_size <- 10
+mean.patch <- meanPatch(coord, patch_size, FALSE) 
+```
+
+```{r}
+iImg = 4
+estimated_p <- predictWithCorrelation(coord, search_size, mean.patch, iImg, TRUE) 
+# Plot real point in green circle
+points(96 - d.test[iImg, coord_x], 96 - d.test[iImg, coord_y], col="green")
+# Compute error:
+real_p <- c(d.test$mouth_center_top_lip_x[iImg], d.test$mouth_center_top_lip_y[iImg])
+err <- estimated_p - real_p
+sqrt(mean(err^2))
+```
+
+
+*mouth_right_corner*
+```{r, echo=FALSE, cache=TRUE}
+coord      <- "mouth_right_corner" 
+coord_x <- paste(coord, "x", sep="_")
+coord_y <- paste(coord, "y", sep="_")
+patch_size <- 10
+mean.patch <- meanPatch(coord, patch_size, FALSE) 
+```
+
+```{r}
+iImg = 4
 estimated_p <- predictWithCorrelation(coord, search_size, mean.patch, iImg, TRUE) 
 # Plot real point in green circle
 points(96 - d.test[iImg, coord_x], 96 - d.test[iImg, coord_y], col="green")
@@ -227,7 +265,6 @@ sqrt(mean(err^2))
 ## *Strong Classifiers* em cascata
 * Formado por estágios
 * Cada estágio é composto por um conjunto de *weak learners*
-If at any stage in the cascade a classifier rejects the sub-window under inspection, no further processing is performed and continue on searching the next sub-window (see figure at right).
 * Cada *strong classifier* é treinado somente a partir das amostras que passam dos classificadores precedentes
 * Se em um dado estágio a sub-janela sendo inspecionada for rejeitada (classificada como negativa), o processamento desta sub-janela se encerra é a próxima janela passa a ser inspecionada
 * Falsos-positivos são aceitáveis, enquanto falsos-negativos devem ocorrer em um taxa próxima de 0%
@@ -244,3 +281,21 @@ The stages are designed to reject negative samples as fast as possible. The assu
 
 The overall false positive rate of the cascade classifier is fs, where f is the false positive rate per stage in the range (0 1), and s is the number of stages. Similarly, the overall true positive rate is ts, where t is the true positive rate per stage in the range (0 1]. Thus, you can see that adding more stages reduces the overall false-postive rate, but it also reduces the overall true positive rate."
 -->
+
+
+## Resultados
+
+### Correlação 
+
+![Reconhecimento com Correlacao](./figs/correlacao_comparacao.png)
+
+![Reconhecimento com Correlacao](./figs/correlacao_comparacao2.png)
+
+
+## Resultados
+
+### Viola-Jones 
+
+![Reconhecimento com Viola-Jones](./figs/violaJones_comparacao.png)
+
+## Acurácia
