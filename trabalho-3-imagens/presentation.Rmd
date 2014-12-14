@@ -14,8 +14,9 @@ bibliography: bibliography.bib
 
 ```{r, echo=FALSE, message=FALSE, warning=FALSE}
 # Load dependencies and dataset
-library(doMC)
-registerDoMC()
+#library(doMC)
+#registerDoMC()
+library(foreach)
 load('./matlab/data/data.Rd')
 ```
 
@@ -25,7 +26,7 @@ load('./matlab/data/data.Rd')
 2. Objetivos
 3. Fluxo de Trabalho
 4. Pré-processamento e transformações
-5. Algoritmos de Aprendizado
+5. Algoritmos
 6. Resultados
 
 
@@ -53,7 +54,8 @@ Dados disponíveis na base:
 - 'mouth_center_bottom_lip': centro do lábio inferior 
 
 ### Métrica de Avaliação
-Ajustar "caixa" retangular sobre as coordenadas acima e avaliar o RMSE com relação as dados verdadeiros.
+- RMSE entre as coordenadas detectadas e verdadeiras
+- Comparar taxas de falso positivo e falso negativo
 
 ## Fluxo de Trabalho
 
@@ -61,64 +63,34 @@ Ajustar "caixa" retangular sobre as coordenadas acima e avaliar o RMSE com rela�
 
 ## Pré-processamento
 
-- Atribuir identificador `NaN` para dados  (coordenadas) ausentes
+- Atribuir identificador `NaN` para dados (coordenadas) ausentes
 - Converter imagens na base dadas como vetores 'Char' para matrizes `Int8` de dimensões $96 \times 96$
-- Para o MATLAB, dividir estas matrizes por 255 e salvar as matrizes resultantes (com elementos de 0 a 1) como imagens em *grayscale* 
+- Para o MATLAB, dividir estas matrizes por 255 e salvar as matrizes resultantes (com elementos no intervalo de 0 a 1) como imagens em *grayscale*
+- No MATLAB, o contraste das imagens é melhorado por meio da função `imadjust` para facilitar a detecção
 
 ## Separação de Dados
 
-- Os dados de teste da base disponibilizada pelo *Kaggle.com* não contém os dados verdadeiros, somente as imagens, já que trata-se de uma competição.
-- Separa-se os dados da base de treinamento em novos conjuntos de **Treino** e **Teste**:
-- - 80% treino
-- - 20% teste
+- Os dados de teste da base disponibilizada pelo *Kaggle.com* não contém os dados verdadeiros, somente as imagens, já que se trata de uma competição.
+- Separam-se os dados da base de treinamento em novos conjuntos: 
+    - **Treino:** 80% 
+    - **Teste:** 20% 
 
-## Extração de Features e *Patches*
+## Extração de *Features* e *Patches*
 
-### Motivação 
-* Melhor representação do conhecimento em comparação aos pixels puros
-* O uso de *features* permite operações muito mais rápidas 
-
-### *Features* utilizados
-* Haar features (features rectangulares) - método de Viola-Jones
-
-### Image *Patches*
+### *Patches*:
+* Subimagens de interesse
 * Usado no método de identifição através da correlação
 
-## Features retangulares e a Representação Imagem Integral
+### *Features*:
+* Melhor representação do conhecimento em comparação aos pixels puros
+* O uso de *features* permite operações muito mais rápidas 
+* Haar features (features retangulares) - método de Viola-Jones
 
-* Reminescentes das funções base de wavelets Haar
 
-### Tipos
-* "dois-retângulos": valor é a diferença entre a soma dos pixels de cada um dos retângulos 
-* "três-retângulos": soma dos pixels nos dois retângulos externos subtraída da soma dos pixels no retângulo interno
-* "quatro-retângulos": diferença entre as somas dos pixels dos pares de retângulos diagonais
 
-![Haar Features](./figs/haar_features.jpg)
 
-**Nota:** para cada um destes tipos, as dimensões dos retângulos podem ser variadas, o que permite um número extremamente elevado de combinações de features em uma imagem (ex. Uma imagem 24 x 24 possui mais de 160 mil features) 
 
-### Imagem Integral
-* Esta representação é uma das três contribuições principais do trabalho de Viola-Jones
-* O valor de uma imagem nas coordenadas (x, y) corresponde à soma de todos os pixels acima e à esquerda de (x, y), inclusive
-* Nota-se que há recorrencia. Por exemplo, o valor na representação integral em (x+1, y) é dado pelo valor em (x, y) acrescido do valor da representação original em (x+1, y)
-* É possível calcular a representação integral com uma única "passada" na imagem 
-* A partir da representação íntegral pode-se: 1) calcular a soma dos valores dos pixels em um retângulo a partir de 4 referências (os cantos); 2) a diferença entre a soma de dois retângulos a partir de 8 referências
-* Ferramenta poderosa pra calcular os "Features" retangulares com baixo custo computacional 
-
-#### Número de referências pra cada *Feature*
-* "dois-retângulos" (A e B): 6 (reduz-se de 8 pra 6 devido serem adjacentes)
-* "três-retângulos" (C): 8
-* "quatro-retângulos" (D): 9
-
-**Nota #1**: o conjunto de Features retangulars provê uma representação rica para aprendizado, a qual captura padrões em orientação horizontal, vertical e diagonal.
-**Nota #2**: ainda que o custo computacional pra calcular um Feature seja muito baixo, o número de Features possíveis em uma imagem 96 x 96 é tão grande que está computação é proibitiva (vide continuação do método de Viola-Jones)
-
-## Algoritmos de Aprendizado
-
-* Baseline estatístico: Correlação
-* Algoritmo de Viola-Jones
-
-## Correlação
+## *Baseline* estatístico: Correlação
 
 Patch médio de todas as bocas na base de dados:
 ```{r, echo=FALSE, message=FALSE}
@@ -126,7 +98,7 @@ Patch médio de todas as bocas na base de dados:
 source('meanPatch.R')
 ```
 
-*mouth_center_top_lip*
+#### Lábio superior (*mouth_center_top_lip*)
 ```{r, cache=TRUE}
 coord      <- "mouth_center_top_lip" 
 patch_size <- 15 # e.g. 10 means we will have a square of 21x21 pixels (10+1+10). 
@@ -134,7 +106,7 @@ search_size <- 15 # e.g. would give a 5x5 (2+1+2)
 mean.patch <- meanPatch(coord, patch_size, TRUE) 
 ```
 
-*mouth_center_bottom_lip*
+#### Lábio inferior (*mouth_center_bottom_lip*)
 ```{r, cache=TRUE}
 coord      <- "mouth_center_bottom_lip" 
 patch_size <- 15 # e.g. 10 means we will have a square of 21x21 pixels (10+1+10). 
@@ -142,7 +114,7 @@ search_size <- 15 # e.g. would give a 5x5 (2+1+2)
 mean.patch <- meanPatch(coord, patch_size, TRUE) 
 ```
 
-*mouth_left_corner*
+#### Canto esquerdo (*mouth_left_corner*)
 ```{r, cache=TRUE}
 coord      <- "mouth_left_corner" 
 patch_size <- 15 # e.g. 10 means we will have a square of 21x21 pixels (10+1+10). 
@@ -150,7 +122,7 @@ search_size <- 15 # e.g. would give a 5x5 (2+1+2)
 mean.patch <- meanPatch(coord, patch_size, TRUE) 
 ```
 
-*mouth_right_corner*
+#### Canto direito (*mouth_right_corner*)
 ```{r, cache=TRUE}
 coord      <- "mouth_right_corner" 
 patch_size <- 15 # e.g. 10 means we will have a square of 21x21 pixels (10+1+10). 
@@ -160,13 +132,20 @@ mean.patch <- meanPatch(coord, patch_size, TRUE)
 
 ## Predição
 
+* Correlação cruzada entre *patch* médio e uma região de busca na imagem
+* Região de busca definida como um *grid*, em cujas coordenadas o *patch* médio é centrado iterativamente
+* Detecção: coordenadas nas quais encontra-se a maior correlação
+
+![Busca de Patch](./figs/patch_search.png)
+
+Definição do intervalo de busca:
 ```{r}
 source('predictWithCorrelation.R')
 search_size <- 20 # e.g. would give a 5x5 (2+1+2) 
 ```
 
-*mouth_center_top_lip*
-```{r, echo=FALSE, cache=TRUE}
+#### Lábio superior (*mouth_center_top_lip*)
+```{r, echo=FALSE, cache=TRUE, warning=FALSE}
 coord      <- "mouth_center_top_lip" 
 coord_x <- paste(coord, "x", sep="_")
 coord_y <- paste(coord, "y", sep="_")
@@ -186,8 +165,8 @@ sqrt(mean(err^2))
 ```
 
 
-*mouth_center_bottom_lip*
-```{r, echo=FALSE, cache=TRUE}
+#### Lábio inferior (*mouth_center_bottom_lip*)
+```{r, echo=FALSE, cache=TRUE, warning=FALSE}
 coord      <- "mouth_center_bottom_lip" 
 coord_x <- paste(coord, "x", sep="_")
 coord_y <- paste(coord, "y", sep="_")
@@ -207,8 +186,8 @@ sqrt(mean(err^2))
 ```
 
 
-*mouth_left_corner*
-```{r, echo=FALSE, cache=TRUE}
+#### Canto esquerdo (*mouth_left_corner*)
+```{r, echo=FALSE, cache=TRUE, warning=FALSE}
 coord      <- "mouth_left_corner" 
 coord_x <- paste(coord, "x", sep="_")
 coord_y <- paste(coord, "y", sep="_")
@@ -228,8 +207,8 @@ sqrt(mean(err^2))
 ```
 
 
-*mouth_right_corner*
-```{r, echo=FALSE, cache=TRUE}
+#### Canto direito (*mouth_right_corner*)
+```{r, echo=FALSE, cache=TRUE, warning=FALSE}
 coord      <- "mouth_right_corner" 
 coord_x <- paste(coord, "x", sep="_")
 coord_y <- paste(coord, "y", sep="_")
@@ -248,14 +227,60 @@ err <- estimated_p - real_p
 sqrt(mean(err^2))
 ```
 
+
 ## Método de Viola-Jones
 
-1. Representação Integral e extração de Features retangulares
+Ver [@viola_jones_paper2001]
+
+1. Representação Integral e extração de *features* retangulares
 2. Construção de classificadores através da seleção de Features com AdaBoost
 3. Cascateamento de classificadores
 
+* Neste algoritmo, o treinamento dos classificadores é longo, mas a detecção é muito rápida
+    * Segundo [@viola_jones_paper2001], para imagens 384 x 288 e utilizando processador 700MHz, este algoritmo detecta faces a uma taxa de 15 imagens por segundo
+    
+    
+## *Features* retangulares
+
+* Reminescentes das funções base de wavelets Haar
+* Captura de padrões em orientação horizontal, vertical e diagonal
+
+![Haar Features](./figs/haar_features.jpg)
+
+### Tipos
+* **(A e B)** - "dois-retângulos": valor é a diferença entre a soma dos pixels de cada um dos retângulos 
+$$ \text{feature} = \text{soma ret. branco} - \text{soma ret. preto} $$
+* **(C)** - "três-retângulos" : soma dos pixels nos dois retângulos externos subtraída da soma dos pixels no retângulo interno
+$$ \text{feature} = \text{soma rets. brancos} - \text{soma ret. preto} $$
+* **(D)** - "quatro-retângulos": diferença entre as somas dos pixels dos pares de retângulos diagonais
+$$ \text{feature} = \text{soma rets. brancos} - \text{soma rets. pretos} $$
+
+**Nota:** número extremamente elevado de combinações de features em uma imagem. 
+    
+    * Uma imagem 24 x 24 possui mais de 160 mil features!
+
+## Representação Imagem Integral
+* Esta representação é uma das três contribuições principais do trabalho de Viola-Jones
+* Valor em $(x, y)$ corresponde à soma de todos os pixels acima e à esquerda de $(x, y)$, inclusive
+* Há recorrência. 
+    * Exemplo: valor na em $(x+1, y)$ é dado pelo valor em $(x, y)$ acrescido do valor da representação original em $(x+1, y)$
+* É possível calcular a representação integral com uma única "passada" na imagem 
+* A partir da representação integral pode-se: 
+    1. calcular a soma dos valores dos pixels em um retângulo a partir de 4 referências (os cantos);
+    2. a diferença entre a soma de dois retângulos a partir de 8 referências
+* Ferramenta poderosa pra calcular os *features* retangulares com baixo custo computacional 
+
+#### Número de referências pra cada *Feature*
+* Tipo "dois-retângulos": 6 (reduz-se de 8 pra 6 devido serem adjacentes)
+* Tipo "três-retângulos": 8
+* Tipo "quatro-retângulos": 9
+
+**Nota**: ainda que o custo computacional para calcular um *feature* seja muito baixo, o número de Features possíveis em uma imagem $96 \times 96$ é tão grande que esta computação é proibitiva 
+    
+
 ## Construção de classificadores
-* Utilização  de todo o conjunto de Features é proibitiva 
+* Utilização  de todo o conjunto de Features é proibitiva
+    * Em uma imagem 384 x 288 pixels, há 180.000 features!
 * Objetivo: combinar um número pequeno de Features para formar um classificador efetivo
 * *AdaBoost*: usado tanto para selecionar um pequeno número de *features* como para treinar o classificador 
 * **Imagens positivas e negativas**: contém e não contém o objeto alvo, respectivamente
@@ -266,11 +291,11 @@ sqrt(mean(err^2))
 * Formado por estágios
 * Cada estágio é composto por um conjunto de *weak learners*
 * Cada *strong classifier* é treinado somente a partir das amostras que passam dos classificadores precedentes
-* Se em um dado estágio a sub-janela sendo inspecionada for rejeitada (classificada como negativa), o processamento desta sub-janela se encerra é a próxima janela passa a ser inspecionada
-* Falsos-positivos são aceitáveis, enquanto falsos-negativos devem ocorrer em um taxa próxima de 0%
-* **Taxa global de falsos-positivos e de detecção**: dadas pelo produto das taxas individuais de cada estágio
-* Como o objetivo pra taxa global de falsos-positivos é atingir um número tão baixo quanto possível, pode-se utilizar estágios com performances ruins e ainda assim atingir uma performance global satisfatória (exemplo: dois estágios com 60% de falsos-positivos resultam em uma cascata com 36% de falsos-positivos)
-* Em contraste, para uma taxa global de detecção tão próxima quando possível de 100%, os estágios precisam ter performances indivíduos igualmente próximas de 100%
+* Se em um dado estágio a sub-janela sendo inspecionada for rejeitada (classificada como negativa), o processamento desta sub-janela se encerra e a próxima janela passa a ser inspecionada
+* Falsos-positivos são aceitáveis, enquanto falsos-negativos devem ocorrer a uma taxa próxima de 0%
+* **Taxa global de falsos-positivos e de detecção**: dadas pelo produto das respectivas taxas individuais de cada estágio
+* Como o objetivo para a taxa global de falsos-positivos é atingir um número tão baixo quanto possível, pode-se utilizar estágios com performances ruins e ainda assim atingir uma performance global satisfatória (exemplo: dois estágios com 60% de falsos-positivos resultam em uma cascata com 36% de falsos-positivos)
+* Em contraste, para uma taxa global de detecção tão próxima quando possível de 100%, os estágios precisam ter performances individuais igualmente próximas de 100%
 
 <!--
 The cascade classifier consists of stages, where each stage is an ensemble of weak learners. The weak learners are simple classifiers called decision stumps. Each stage is trained using a technique called boosting. Boosting provides the ability to train a highly accurate classifier by taking a weighted average of the decisions made by the weak learners.
@@ -298,4 +323,18 @@ The overall false positive rate of the cascade classifier is fs, where f is the 
 
 ![Reconhecimento com Viola-Jones](./figs/violaJones_comparacao.png)
 
+
+
 ## Acurácia
+
+
+
+
+## Referências
+
+
+
+
+
+
+
