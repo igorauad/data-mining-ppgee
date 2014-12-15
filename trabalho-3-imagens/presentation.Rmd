@@ -332,9 +332,9 @@ $$ \text{feature} = \text{soma rets. brancos} - \text{soma rets. pretos} $$
 ## Construção de classificadores
 * Utilização  de todo o conjunto de *features* é proibitiva    
 * Objetivo: combinar um número pequeno de *features* para formar um classificador efetivo
-* *AdaBoost*: usado tanto para selecionar um pequeno número de *features* como para treinar o classificador 
-* *Weak learners*: classificadores simples
-* *Boosting*: provê a habilidade de treinar um classificador com alta acurácia a partir da média ponderada das decisões feitas por *weak learners*
+* *AdaBoost*: usado para selecionar um pequeno número de *features*
+* *Weak learners*: classificadores simples (ao menos melhores que chute aleatório)
+* *Boosting*: provê a habilidade de treinar um classificador (*strong*) com alta acurácia a partir da combinação linear das decisões feitas por *weak learners* $$f = \alpha_0 f_0 + \alpha_1 f_1 + \cdots + \alpha_N f_N$$
 
 ## *Strong Classifiers* em cascata
 * Formado por estágios
