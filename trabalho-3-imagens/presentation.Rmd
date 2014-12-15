@@ -14,8 +14,8 @@ bibliography: bibliography.bib
 
 ```{r, echo=FALSE, message=FALSE, warning=FALSE}
 # Load dependencies and dataset
-#library(doMC)
-#registerDoMC()
+library(doMC)
+registerDoMC()
 library(foreach)
 load('./matlab/data/data.Rd')
 ```
@@ -55,7 +55,6 @@ Dados disponíveis na base:
 
 ### Métrica de Avaliação
 - RMSE entre as coordenadas detectadas e verdadeiras
-- Comparar taxas de falso positivo e falso negativo
 
 ## Fluxo de Trabalho
 
@@ -64,13 +63,11 @@ Dados disponíveis na base:
 ## Pré-processamento
 
 - Atribuir identificador `NaN` para dados (coordenadas) ausentes
-- Converter imagens na base dadas como vetores 'Char' para matrizes `Int8` de dimensões $96 \times 96$
-- Para o MATLAB, dividir estas matrizes por 255 e salvar as matrizes resultantes (com elementos no intervalo de 0 a 1) como imagens em *grayscale*
-- No MATLAB, o contraste das imagens é melhorado por meio da função `imadjust` para facilitar a detecção
+- Converter imagens dadas na base como vetores 'Char' para matrizes `Int8` de dimensões $96 \times 96$
+- Para o MATLAB, dividir estas matrizes por 255 e salvar as matrizes resultantes (com elementos no intervalo de 0 a 1) representativas de imagens em *grayscale*
 
 ## Separação de Dados
 
-- Os dados de teste da base disponibilizada pelo *Kaggle.com* não contém os dados verdadeiros, somente as imagens, já que se trata de uma competição.
 - Separam-se os dados da base de treinamento em novos conjuntos: 
     - **Treino:** 80% 
     - **Teste:** 20% 
@@ -94,39 +91,47 @@ Dados disponíveis na base:
 
 Patch médio de todas as bocas na base de dados:
 ```{r, echo=FALSE, message=FALSE}
-# Carrega funcao
 source('meanPatch.R')
 ```
 
 #### Lábio superior (*mouth_center_top_lip*)
+
+Definir coordenada:
 ```{r, cache=TRUE}
 coord      <- "mouth_center_top_lip" 
-patch_size <- 15 # e.g. 10 means we will have a square of 21x21 pixels (10+1+10). 
-search_size <- 15 # e.g. would give a 5x5 (2+1+2) 
+```
+
+Definir dimensão do *patch*:
+```{r, cache=TRUE}
+patch_size <- 15  # e.x. 10 significaria um quadrado de 21x21 pixels (10+1+10).  
+``` 
+
+Calcular *patch* médio:
+```{r, cache=TRUE}
 mean.patch <- meanPatch(coord, patch_size, TRUE) 
 ```
 
+
 #### Lábio inferior (*mouth_center_bottom_lip*)
-```{r, cache=TRUE}
+```{r, cache=TRUE, echo=FALSE}
 coord      <- "mouth_center_bottom_lip" 
-patch_size <- 15 # e.g. 10 means we will have a square of 21x21 pixels (10+1+10). 
-search_size <- 15 # e.g. would give a 5x5 (2+1+2) 
+patch_size <- 15 
 mean.patch <- meanPatch(coord, patch_size, TRUE) 
 ```
 
 #### Canto esquerdo (*mouth_left_corner*)
-```{r, cache=TRUE}
+
+Observar enantiomorfismo:
+```{r, cache=TRUE, echo=FALSE}
 coord      <- "mouth_left_corner" 
-patch_size <- 15 # e.g. 10 means we will have a square of 21x21 pixels (10+1+10). 
-search_size <- 15 # e.g. would give a 5x5 (2+1+2) 
+patch_size <- 15 
 mean.patch <- meanPatch(coord, patch_size, TRUE) 
 ```
 
 #### Canto direito (*mouth_right_corner*)
-```{r, cache=TRUE}
+```{r, cache=TRUE, echo=FALSE}
 coord      <- "mouth_right_corner" 
-patch_size <- 15 # e.g. 10 means we will have a square of 21x21 pixels (10+1+10). 
-search_size <- 15 # e.g. would give a 5x5 (2+1+2) 
+patch_size <- 15 
 mean.patch <- meanPatch(coord, patch_size, TRUE) 
 ```
 
@@ -138,9 +143,12 @@ mean.patch <- meanPatch(coord, patch_size, TRUE)
 
 ![Busca de Patch](./figs/patch_search.png)
 
-Definição do intervalo de busca:
-```{r}
+```{r, cache=TRUE}
 source('predictWithCorrelation.R')
+```
+
+Definir intervalo de busca:
+```{r, cache=TRUE}
 search_size <- 20 # e.g. would give a 5x5 (2+1+2) 
 ```
 
@@ -154,14 +162,22 @@ mean.patch <- meanPatch(coord, patch_size, FALSE)
 ```
 
 ```{r}
-iImg = 5
+iImg = 4 # Escolher imagem
+# Estimar coordenadas usando correlacao e plotar em vermelho:
 estimated_p <- predictWithCorrelation(coord, search_size, mean.patch, iImg, TRUE) 
-# Plot real point in green circle
+# Plotar coordenadas reais em verde:
 points(96 - d.test[iImg, coord_x], 96 - d.test[iImg, coord_y], col="green")
-# Compute error:
+```
+
+```{r}
+# RMSE:
 real_p <- c(d.test$mouth_center_top_lip_x[iImg], d.test$mouth_center_top_lip_y[iImg])
 err <- estimated_p - real_p
 sqrt(mean(err^2))
+```
+
+```{r, echo=FALSE, cache=TRUE}
+d_mouth_center_top_lip <- estimated_p
 ```
 
 
@@ -174,17 +190,23 @@ patch_size <- 10
 mean.patch <- meanPatch(coord, patch_size, FALSE) 
 ```
 
-```{r}
-iImg = 4
+```{r, echo=FALSE, cache=TRUE}
 estimated_p <- predictWithCorrelation(coord, search_size, mean.patch, iImg, TRUE) 
-# Plot real point in green circle
+# Plotar coordenadas reais em verde:
 points(96 - d.test[iImg, coord_x], 96 - d.test[iImg, coord_y], col="green")
-# Compute error:
-real_p <- c(d.test$mouth_center_top_lip_x[iImg], d.test$mouth_center_top_lip_y[iImg])
+```
+
+RMSE:
+```{r, echo=FALSE, cache=TRUE}
+# Erro:
+real_p <- c(d.test$mouth_center_bottom_lip_x[iImg], d.test$mouth_center_bottom_lip_y[iImg])
 err <- estimated_p - real_p
 sqrt(mean(err^2))
 ```
 
+```{r, echo=FALSE, cache=TRUE}
+d_mouth_center_bottom_lip_x <- estimated_p
+```
 
 #### Canto esquerdo (*mouth_left_corner*)
 ```{r, echo=FALSE, cache=TRUE, warning=FALSE}
@@ -195,17 +217,22 @@ patch_size <- 10
 mean.patch <- meanPatch(coord, patch_size, FALSE) 
 ```
 
-```{r}
-iImg = 4
+```{r, echo=FALSE, cache=TRUE}
 estimated_p <- predictWithCorrelation(coord, search_size, mean.patch, iImg, TRUE) 
-# Plot real point in green circle
+# Plotar coordenadas reais em verde:
 points(96 - d.test[iImg, coord_x], 96 - d.test[iImg, coord_y], col="green")
-# Compute error:
-real_p <- c(d.test$mouth_center_top_lip_x[iImg], d.test$mouth_center_top_lip_y[iImg])
+```
+
+RMSE:
+```{r, echo=FALSE, cache=TRUE}
+real_p <- c(d.test$mouth_left_corner_x[iImg], d.test$mouth_left_corner_y[iImg])
 err <- estimated_p - real_p
 sqrt(mean(err^2))
 ```
 
+```{r, echo=FALSE, cache=TRUE}
+d_mouth_left_corner <- estimated_p
+```
 
 #### Canto direito (*mouth_right_corner*)
 ```{r, echo=FALSE, cache=TRUE, warning=FALSE}
@@ -216,16 +243,43 @@ patch_size <- 10
 mean.patch <- meanPatch(coord, patch_size, FALSE) 
 ```
 
-```{r}
-iImg = 4
+```{r, echo=FALSE, cache=TRUE}
 estimated_p <- predictWithCorrelation(coord, search_size, mean.patch, iImg, TRUE) 
-# Plot real point in green circle
+# Plotar coordenadas reais em verde:
 points(96 - d.test[iImg, coord_x], 96 - d.test[iImg, coord_y], col="green")
-# Compute error:
-real_p <- c(d.test$mouth_center_top_lip_x[iImg], d.test$mouth_center_top_lip_y[iImg])
+```
+
+RMSE:
+```{r, echo=FALSE, cache=TRUE}
+real_p <- c(d.test$mouth_right_corner_x[iImg], d.test$mouth_right_corner_y[iImg])
 err <- estimated_p - real_p
 sqrt(mean(err^2))
 ```
+
+```{r, echo=FALSE, cache=TRUE}
+d_mouth_right_corner <- estimated_p
+```
+
+
+### Retângulo com detecção:
+```{r}
+im  <- matrix(data=rev(im.test[iImg,]), nrow=96, ncol=96)
+image(1:96, 1:96, im, col=gray((0:255)/255))
+xleft <- 96 - d_mouth_left_corner[1]
+ybottom <- 96 - d_mouth_center_bottom_lip_x[2]
+xright <- 96 - d_mouth_right_corner[1]
+ytop <- 96 - d_mouth_center_top_lip[2]
+
+rect(xleft, ybottom, xright, ytop, lwd=2, border="green" );
+```
+
+## Método Correlação - Observações
+
+* Acurácia satisfatória
+* Para obter os melhores resultados, é necessário otimizar:
+    * a dimensão do *patch* 
+    * o campo de busca
+* **Custo computacional extremamente elevado**
 
 
 ## Método de Viola-Jones
@@ -236,13 +290,13 @@ Ver [@viola_jones_paper2001]
 2. Construção de classificadores através da seleção de Features com AdaBoost
 3. Cascateamento de classificadores
 
-* Neste algoritmo, o treinamento dos classificadores é longo, mas a detecção é muito rápida
+* Treinamento dos classificadores é extremamente longo, mas a detecção passa a ser muito rápida
     * Segundo [@viola_jones_paper2001], para imagens 384 x 288 e utilizando processador 700MHz, este algoritmo detecta faces a uma taxa de 15 imagens por segundo
     
     
 ## *Features* retangulares
 
-* Reminescentes das funções base de wavelets Haar
+* Reminescentes das funções base de *wavelets* Haar
 * Captura de padrões em orientação horizontal, vertical e diagonal
 
 ![Haar Features](./figs/haar_features.jpg)
@@ -255,15 +309,11 @@ $$ \text{feature} = \text{soma rets. brancos} - \text{soma ret. preto} $$
 * **(D)** - "quatro-retângulos": diferença entre as somas dos pixels dos pares de retângulos diagonais
 $$ \text{feature} = \text{soma rets. brancos} - \text{soma rets. pretos} $$
 
-**Nota:** número extremamente elevado de combinações de features em uma imagem. 
-    
-    * Uma imagem 24 x 24 possui mais de 160 mil features!
-
 ## Representação Imagem Integral
-* Esta representação é uma das três contribuições principais do trabalho de Viola-Jones
+* Uma das três contribuições principais do trabalho de Viola-Jones
 * Valor em $(x, y)$ corresponde à soma de todos os pixels acima e à esquerda de $(x, y)$, inclusive
-* Há recorrência. 
-    * Exemplo: valor na em $(x+1, y)$ é dado pelo valor em $(x, y)$ acrescido do valor da representação original em $(x+1, y)$
+* Há recorrência:
+    * Exemplo: valor em $(x+1, y)$ é dado pelo valor em $(x, y)$ acrescido do valor na representação original em $(x+1, y)$
 * É possível calcular a representação integral com uma única "passada" na imagem 
 * A partir da representação integral pode-se: 
     1. calcular a soma dos valores dos pixels em um retângulo a partir de 4 referências (os cantos);
@@ -275,15 +325,14 @@ $$ \text{feature} = \text{soma rets. brancos} - \text{soma rets. pretos} $$
 * Tipo "três-retângulos": 8
 * Tipo "quatro-retângulos": 9
 
-**Nota**: ainda que o custo computacional para calcular um *feature* seja muito baixo, o número de Features possíveis em uma imagem $96 \times 96$ é tão grande que esta computação é proibitiva 
+**Nota**: custo computacional para calcular um *feature* é baixo, mas o número de *features* possíveis em uma imagem é extremamente elevado
     
+    * Uma imagem 24 x 24 possui mais de 160 mil features!    
 
 ## Construção de classificadores
-* Utilização  de todo o conjunto de Features é proibitiva
-    * Em uma imagem 384 x 288 pixels, há 180.000 features!
-* Objetivo: combinar um número pequeno de Features para formar um classificador efetivo
+* Utilização  de todo o conjunto de *features* é proibitiva    
+* Objetivo: combinar um número pequeno de *features* para formar um classificador efetivo
 * *AdaBoost*: usado tanto para selecionar um pequeno número de *features* como para treinar o classificador 
-* **Imagens positivas e negativas**: contém e não contém o objeto alvo, respectivamente
 * *Weak learners*: classificadores simples
 * *Boosting*: provê a habilidade de treinar um classificador com alta acurácia a partir da média ponderada das decisões feitas por *weak learners*
 
@@ -291,42 +340,56 @@ $$ \text{feature} = \text{soma rets. brancos} - \text{soma rets. pretos} $$
 * Formado por estágios
 * Cada estágio é composto por um conjunto de *weak learners*
 * Cada *strong classifier* é treinado somente a partir das amostras que passam dos classificadores precedentes
-* Se em um dado estágio a sub-janela sendo inspecionada for rejeitada (classificada como negativa), o processamento desta sub-janela se encerra e a próxima janela passa a ser inspecionada
+* Sub-janelas são inspecionadas, passando pelos estágios do classificador em cascata
+* Classificações:
+    * **Negativa**: processamento se encerra e a próxima sub-janela passa a ser inspecionada
+    * **Positiva**: sub-janela continua a ser processada pelo próximo estágio do classificador
 * Falsos-positivos são aceitáveis, enquanto falsos-negativos devem ocorrer a uma taxa próxima de 0%
-* **Taxa global de falsos-positivos e de detecção**: dadas pelo produto das respectivas taxas individuais de cada estágio
-* Como o objetivo para a taxa global de falsos-positivos é atingir um número tão baixo quanto possível, pode-se utilizar estágios com performances ruins e ainda assim atingir uma performance global satisfatória (exemplo: dois estágios com 60% de falsos-positivos resultam em uma cascata com 36% de falsos-positivos)
-* Em contraste, para uma taxa global de detecção tão próxima quando possível de 100%, os estágios precisam ter performances individuais igualmente próximas de 100%
+* **Taxa global de falsos-positivos e de detecção**: dadas pelo produto das respectivas taxas individuais ($f_k$) de cada um dos $M$ estágios $$ f = \prod \limits_{k=0}^{M-1} f_k$$
+* Estágios com performances individuais ruins podem atingir uma performance global satisfatória (*e.g.* 2 x 60% = 36%)
+* Para uma taxa global de detecção (verdadeiro-positivo) tão próxima quando possível de 100%, os estágios precisam ter performances individuais igualmente próximas de 100%
+
+## Treinando um Classificador
+
+* Classificadores pré-treinados em `vision.CascadeObjectDetector` (MATLAB)
+* Viola-Jones é preferível para objetos cuja razão de aspecto não varia significativamente
+* Necessário conjunto de imagens positivas e negativas
+* Objeto encontrado em uma imagem negativa: falso-positivo - será passado como imagem negativa para o treinamento do próximo estágio do classificador 
+* Amostra positiva classificada erroneamente como negativa: é descartada, isto é, não é usada no treinamento dos estágios seguintes
+* Amostras positivas podem se esgotar antes que todos os estágios estejam treinados
+
+### Relações de compromisso:
+* **Mais estágios**:
+    * Melhora taxa de falsos-positivos
+    * Piora taxa de verdadeiros-positivos
+    * Piora taxa de falsos-negativos (mais estágios, maior probabilidade de rejeição)
+    * Necessita de mais imagens negativas para treinamento (somente falsos-positivos são passados como imagens negativas aos estágios seguintes)
+
+### Práticas
+* Como a base de dados é relativamente grande, pode-se aumentar o número de estágios e relaxar (aumentar) as especificações de taxa de falsos-positivos em cada estágio (alvo)
+* Para economizar tempo, tunar os parâmetros usando *features* LBP ou HOG
+* Geração de amostras positivas a partir de rotações, adição de ruído ou mudança de contraste
+* Utilizar imagens negativas com fundos e cenários semelhantes às imagens positivas
+* Melhorar o contraste das imagens por meio da função `imadjust`
 
 <!--
-The cascade classifier consists of stages, where each stage is an ensemble of weak learners. The weak learners are simple classifiers called decision stumps. Each stage is trained using a technique called boosting. Boosting provides the ability to train a highly accurate classifier by taking a weighted average of the decisions made by the weak learners.
-
-Each stage of the classifier labels the region defined by the current location of the sliding window as either positive or negative. Positive indicates an object was found and negative indicates no object. If the label is negative, the classification of this region is complete, and the detector slides the window to the next location. If the label is positive, the classifier passes the region to the next stage. The detector reports an object found at the current window location when the final stage classifies the region as positive.
-
-The stages are designed to reject negative samples as fast as possible. The assumption is that the vast majority of windows do not contain the object of interest. Conversely, true positives are rare, and worth taking the time to verify. A true positive occurs when a positive sample is correctly classified. A false positive occurs when a negative sample is mistakenly classified as positive. A false negative occurs when a positive sample is mistakenly classified as negative. To work well, each stage in the cascade must have a low false negative rate. If a stage incorrectly labels an object as negative, the classification stops, and there is no way to correct the mistake. However, each stage may have a high false positive rate. Even if it incorrectly labels a nonobject as positive, the mistake can be corrected by subsequent stages.
-
-The overall false positive rate of the cascade classifier is fs, where f is the false positive rate per stage in the range (0 1), and s is the number of stages. Similarly, the overall true positive rate is ts, where t is the true positive rate per stage in the range (0 1]. Thus, you can see that adding more stages reduces the overall false-postive rate, but it also reduces the overall true positive rate."
--->
-
-
-## Resultados
-
-### Correlação 
-
 ![Reconhecimento com Correlacao](./figs/correlacao_comparacao.png)
 
 ![Reconhecimento com Correlacao](./figs/correlacao_comparacao2.png)
+-->
 
+## Viola-Jones: Resultados
 
-## Resultados
-
-### Viola-Jones 
-
+* Detecção com coordenadas mais baixas é a escolhida 
 ![Reconhecimento com Viola-Jones](./figs/violaJones_comparacao.png)
 
 
 
 ## Acurácia
 
+* Detector disponível no *toolbox Computer Vision* no MATLAB: $$\text{RMSE} = 2.8097$$
+
+### Taxas de falso positivo e falso negativo
 
 
 

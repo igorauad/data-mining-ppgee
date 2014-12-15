@@ -20,9 +20,11 @@ im <- matrix(data=rev(im.train[1,]), nrow=96, ncol=96)
 image(1:96, 1:96, im, col=gray((0:255)/255))
 
 # Plot keypoints from training set:
+# In R the image is seen as if the person is looking to the mirror.
 points(96 - d.train$nose_tip_x[1], 96 - d.train$nose_tip_y[1], col="red")
 points(96 - d.train$left_eye_center_x[1], 96 - d.train$left_eye_center_y[1], col="blue")
 points(96 - d.train$right_eye_center_x[1], 96 - d.train$right_eye_center_y[1], col="green")
+points(96 - d.train$mouth_left_corner_x[1], 96 - d.train$mouth_left_corner_y[1], col="red")
 
 for(i in 1:nrow(d.train)) {
   points(96-d.train$nose_tip_x[i], 96-d.train$nose_tip_y[i], col="red")
@@ -123,7 +125,7 @@ print(RMSE_global)
 
 # Show comparison of real vs detected bounding boxes for test figure #50
 #iImg = 170; #testIndices[10,1]
-iImg = testIndices[50,1]
+iImg = testIndices[8,1]
 im  <- matrix(data=rev(im.train[iImg,]), nrow=96, ncol=96)
 #im  <- matrix(data=im.train[iImg,], nrow=96, ncol=96)
 image(1:96, 1:96, im, col=gray((0:255)/255))
