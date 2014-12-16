@@ -358,15 +358,19 @@ $$ \text{feature} = \text{soma rets. brancos} - \text{soma rets. pretos} $$
 * Amostra positiva classificada erroneamente como negativa: é descartada, isto é, não é usada no treinamento dos estágios seguintes
 * Amostras positivas podem se esgotar antes que todos os estágios estejam treinados
 
+![Treinamento do Classificador](./figs/cascadeTraining.png)
+
 ### Relações de compromisso:
 * **Mais estágios**:
     * Melhora taxa de falsos-positivos
     * Piora taxa de verdadeiros-positivos
     * Piora taxa de falsos-negativos (mais estágios, maior probabilidade de rejeição)
-    * Necessita de mais imagens negativas para treinamento (somente falsos-positivos são passados como imagens negativas aos estágios seguintes)
+    * Necessita de mais dados de treinamento:
+      * Imagens negativas, pois somente falsos-positivos são passados como imagens negativas aos estágios seguintes
+      * Imagens positivas, pois falsos-negativos são descartados em cada estágio
 
 ### Práticas
-* Como a base de dados é relativamente grande, pode-se aumentar o número de estágios e relaxar (aumentar) as especificações de taxa de falsos-positivos em cada estágio (alvo)
+* Como a base de dados é relativamente grande, pode-se aumentar o número de estágios e relaxar (aumentar) as especificações de taxa de falsos-positivos em cada estágio (menos *weak learners*)
 * Para economizar tempo, tunar os parâmetros usando *features* LBP ou HOG
 * Geração de amostras positivas a partir de rotações, adição de ruído ou mudança de contraste
 * Utilizar imagens negativas com fundos e cenários semelhantes às imagens positivas
