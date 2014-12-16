@@ -14,8 +14,8 @@ bibliography: bibliography.bib
 
 ```{r, echo=FALSE, message=FALSE, warning=FALSE}
 # Load dependencies and dataset
-library(doMC)
-registerDoMC()
+#library(doMC)
+#registerDoMC()
 library(foreach)
 load('./matlab/data/data.Rd')
 ```
@@ -34,7 +34,7 @@ load('./matlab/data/data.Rd')
 
 #### Desafio disponível no *kaggle.com*: "Facial Keypoints Detection''
 
-* Base de treinamento contendo 7049 imagens e suas coordenadas de pontos chaves: Olhos, Sobrancelhas, Nariz e Boca
+* Base de treinamento contendo 7049 imagens positivas e suas coordenadas de pontos chaves: Olhos, Sobrancelhas, Nariz e Boca. Também há 3019 imagens negativas.
 * Base de teste com 1783 imagens
 
 ![Base de Imagens Faciais](./figs/gallery.png)
@@ -137,7 +137,7 @@ mean.patch <- meanPatch(coord, patch_size, TRUE)
 
 ## Predição
 
-* Correlação cruzada entre *patch* médio e uma região de busca na imagem
+* Correlação cruzada entre os pixels de *patch* médio e de uma região de busca na imagem
 * Região de busca definida como um *grid*, em cujas coordenadas o *patch* médio é centrado iterativamente
 * Detecção: coordenadas nas quais encontra-se a maior correlação
 
@@ -279,7 +279,7 @@ rect(xleft, ybottom, xright, ytop, lwd=2, border="green" );
 * Para obter os melhores resultados, é necessário otimizar:
     * a dimensão do *patch* 
     * o campo de busca
-* **Custo computacional extremamente elevado**
+* **Desvantagem: Custo computacional extremamente elevado**
 
 
 ## Método de Viola-Jones
@@ -303,15 +303,18 @@ Ver [@viola_jones_paper2001]
 
 ### Tipos
 * **(A e B)** - "dois-retângulos": valor é a diferença entre a soma dos pixels de cada um dos retângulos 
-$$ \text{feature} = \text{soma ret. branco} - \text{soma ret. preto} $$
+$$ \text{feature} = (\text{soma ret. branco}) - (\text{soma ret. preto}) $$
 * **(C)** - "três-retângulos" : soma dos pixels nos dois retângulos externos subtraída da soma dos pixels no retângulo interno
-$$ \text{feature} = \text{soma rets. brancos} - \text{soma ret. preto} $$
+$$ \text{feature} = (\text{soma rets. brancos}) - (\text{soma ret. preto}) $$
 * **(D)** - "quatro-retângulos": diferença entre as somas dos pixels dos pares de retângulos diagonais
-$$ \text{feature} = \text{soma rets. brancos} - \text{soma rets. pretos} $$
+$$ \text{feature} = (\text{soma rets. brancos}) - (\text{soma rets. pretos}) $$
 
 ## Representação Imagem Integral
 * Uma das três contribuições principais do trabalho de Viola-Jones
 * Valor em $(x, y)$ corresponde à soma de todos os pixels acima e à esquerda de $(x, y)$, inclusive
+
+![imagem_integral](./figs/imagem_integral.png)
+
 * Há recorrência:
     * Exemplo: valor em $(x+1, y)$ é dado pelo valor em $(x, y)$ acrescido do valor na representação original em $(x+1, y)$
 * É possível calcular a representação integral com uma única "passada" na imagem 
@@ -320,8 +323,10 @@ $$ \text{feature} = \text{soma rets. brancos} - \text{soma rets. pretos} $$
     2. a diferença entre a soma de dois retângulos a partir de 8 referências
 * Ferramenta poderosa pra calcular os *features* retangulares com baixo custo computacional 
 
-#### Número de referências pra cada *Feature*
-* Tipo "dois-retângulos": 6 (reduz-se de 8 pra 6 devido serem adjacentes)
+
+
+#### Número de referências para cada *Feature*
+* Tipo "dois-retângulos": 6 (reduz-se de 8 pra 6 devido ao fato de serem adjacentes)
 * Tipo "três-retângulos": 8
 * Tipo "quatro-retângulos": 9
 
@@ -330,7 +335,7 @@ $$ \text{feature} = \text{soma rets. brancos} - \text{soma rets. pretos} $$
     * Uma imagem 24 x 24 possui mais de 160 mil features!    
 
 ## Construção de classificadores
-* Utilização  de todo o conjunto de *features* é proibitiva    
+* A utilização  de todo o conjunto de *features* é proibitiva    
 * Objetivo: combinar um número pequeno de *features* para formar um classificador efetivo
 * *AdaBoost*: usado para selecionar um pequeno número de *features*
 * *Weak learners*: classificadores simples (ao menos melhores que chute aleatório)
@@ -346,7 +351,7 @@ $$ \text{feature} = \text{soma rets. brancos} - \text{soma rets. pretos} $$
     * **Positiva**: sub-janela continua a ser processada pelo próximo estágio do classificador
 * Falsos-positivos são aceitáveis, enquanto falsos-negativos devem ocorrer a uma taxa próxima de 0%
 * **Taxa global de falsos-positivos e de detecção**: dadas pelo produto das respectivas taxas individuais ($f_k$) de cada um dos $M$ estágios $$ f = \prod \limits_{k=0}^{M-1} f_k$$
-* Estágios com performances individuais ruins podem atingir uma performance global satisfatória (*e.g.* 2 x 60% = 36%)
+* Estágios com performances individuais ruins podem atingir uma performance global satisfatória (*e.g.* 60% x 60% = 36%)
 * Para uma taxa global de detecção (verdadeiro-positivo) tão próxima quando possível de 100%, os estágios precisam ter performances individuais igualmente próximas de 100%
 
 ## Treinando um Classificador
@@ -354,23 +359,20 @@ $$ \text{feature} = \text{soma rets. brancos} - \text{soma rets. pretos} $$
 * Classificadores pré-treinados em `vision.CascadeObjectDetector` (MATLAB)
 * Viola-Jones é preferível para objetos cuja razão de aspecto não varia significativamente
 * Necessário conjunto de imagens positivas e negativas
-* Objeto encontrado em uma imagem negativa: falso-positivo - será passado como imagem negativa para o treinamento do próximo estágio do classificador 
-* Amostra positiva classificada erroneamente como negativa: é descartada, isto é, não é usada no treinamento dos estágios seguintes
+* Objeto encontrado em uma imagem negativa (falso-positivo): será passado como imagem negativa para o treinamento do próximo estágio do classificador 
+* Amostra positiva classificada erroneamente como negativa (falso-negativo): é descartada, isto é, não é usada no treinamento dos estágios seguintes
 * Amostras positivas podem se esgotar antes que todos os estágios estejam treinados
 
-![Treinamento do Classificador](./figs/cascadeTraining.png)
 
 ### Relações de compromisso:
 * **Mais estágios**:
     * Melhora taxa de falsos-positivos
     * Piora taxa de verdadeiros-positivos
     * Piora taxa de falsos-negativos (mais estágios, maior probabilidade de rejeição)
-    * Necessita de mais dados de treinamento:
-      * Imagens negativas, pois somente falsos-positivos são passados como imagens negativas aos estágios seguintes
-      * Imagens positivas, pois falsos-negativos são descartados em cada estágio
+    * Necessita de mais imagens negativas para treinamento (somente falsos-positivos são passados como imagens negativas aos estágios seguintes)
 
 ### Práticas
-* Como a base de dados é relativamente grande, pode-se aumentar o número de estágios e relaxar (aumentar) as especificações de taxa de falsos-positivos em cada estágio (menos *weak learners*)
+* Como a base de dados é relativamente grande, pode-se aumentar o número de estágios e relaxar (aumentar) as especificações de taxa de falsos-positivos em cada estágio (alvo)
 * Para economizar tempo, tunar os parâmetros usando *features* LBP ou HOG
 * Geração de amostras positivas a partir de rotações, adição de ruído ou mudança de contraste
 * Utilizar imagens negativas com fundos e cenários semelhantes às imagens positivas
@@ -382,23 +384,87 @@ $$ \text{feature} = \text{soma rets. brancos} - \text{soma rets. pretos} $$
 ![Reconhecimento com Correlacao](./figs/correlacao_comparacao2.png)
 -->
 
-## Viola-Jones: Resultados
+## Viola-Jones: Detectores no MATLAB
 
-* Detecção com coordenadas mais baixas é a escolhida 
+<!--
+* Detecção com coordenadas Y mais baixas é a escolhida 
+-->
+
+* A toolbox `Computer Vision` do MATLAB contém um classificador de reconhecimento de faces, invocado por `vision.CascadeObjectDetector('Mouth')`
+
+* É possível também treinar um classificador por meio da função $$ \begin{aligned} \text{trainCascadeObjectDetector}&\text{(outputXML, positiveData, negativeData,} \\ &\text{'FalseAlarmRate', FAR} \\ &\text{'TruePositiveRate', TPR,} \\ &\text{'NumCascadeStages', numStages,} \\ &\text{'FeatureType', 'Haar',} \\ & \text{'ObjectTrainingSize', [height width])} \end{aligned} $$
+
+
+* Detectores Utilizados nos testes:
+
+1. Classificador da toolbox `Computer Vision` do MATLAB
+2. Classificador treinado com 5 estágios, $FAR=0.2$, $TPR=0.995$ e FeatureType = Haar
+3. Classificador treinado com 8 estágios, $FAR=0.2$, $TPR=0.995$ e FeatureType = Haar
+
+
+## Viola-Jones: Detecção de bocas no MATLAB
+
+
+* Os detectores retornam os *bounding boxes* de todos os pontos-chave (olhos, nariz e boca) da face. O retângulo relativo à boca é escolhido como aquele com as maiores coordenadas y
+
 ![Reconhecimento com Viola-Jones](./figs/violaJones_comparacao.png)
 
 
+* A partir do *bounding box* da boca, são estimadas as posições dos cantos esquerdo e direito da boca, e os centros dos lábios inferior e superior.
 
-## Acurácia
+![localizacao_pontos_base_viola_jones](./figs/comparacao_pontos_boca_ViolaJones.png)
 
-* Detector disponível no *toolbox Computer Vision* no MATLAB: $$\text{RMSE} = 2.8097$$
 
-### Taxas de falso positivo e falso negativo
+
+## Viola-Jones: Resultados
+
+
+### Acurácia
+
+
+* Primeiramente, toma-se o erro médio quadrático, de forma independente, entre os 4 pontos real e detectado
+
+* O RMSE geral é a média aritmética entre os 4 RMSEs acima
+
+
+![RMSEs Viola Jones](./figs/RMSEs_violaJones.png)
+
+
+
+<!--
+* Detector disponível no *toolbox Computer Vision* no MATLAB: $$\text{RMSE(canto esquerdo)} = 2.7634 \\ \text{RMSE(lábio inferior)} = 3.0972 \\ \text{RMSE(canto direito)} = 2.5832 \\ \text{RMSE(lábio superior)} = 2.4417 \\ \text{RMSE} = 2.7214$$
+
+
+* Classificador treinado de $5$ estágios: $$\text{RMSE(canto esquerdo)} = 3.9085 \\ \text{RMSE(lábio inferior)} = 3.4108 \\ \text{RMSE(canto direito)} = 3.9426 \\ \text{RMSE(lábio superior)} = 3.8654 \\ \text{RMSE} = 3.7818$$
+
+* Classificador treinado de $8$ estágios: $$\text{RMSE(canto esquerdo)} = 4.0883 \\ \text{RMSE(lábio inferior)} = 3.6187 \\ \text{RMSE(canto direito)} = 4.1387 \\ \text{RMSE(lábio superior)} = 4.148 \\ \text{RMSE} = 3.9984$$
+-->
+
+
+
+## Viola-Jones: Resultados
+
+### Matrizes de Confusão
+
+<!--
+* Detector disponível no *toolbox Computer Vision* no MATLAB: $$ \text{Taxa de verdadeiro positivo} = 93.94 \% \\ \text{Taxa de falso negativo} = 6.06 \% $$
+
+* Classificador treinado de $5$ estágios: $$ \text{Taxa de verdadeiro positivo} = 77.46 \% \\ \text{Taxa de falso negativo} = 22.53 \% $$
+
+* Classificador treinado de $8$ estágios: $$ \text{Taxa de verdadeiro positivo} = 57.51 \% \\ \text{Taxa de falso negativo} = 42.49 \% $$
+-->
+
+
+![confusion matrices](./figs/confusion_matrices.png)
+
+
+* Exemplo de imagem falso positivo:
+
+![False Positive](./figs/falsePositive_violaJones.png)
 
 
 
 ## Referências
-
 
 
 
