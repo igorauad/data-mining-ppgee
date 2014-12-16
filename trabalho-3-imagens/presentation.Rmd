@@ -281,10 +281,57 @@ rect(xleft, ybottom, xright, ytop, lwd=2, border="green" );
     * o campo de busca
 * **Desvantagem: Custo computacional extremamente elevado**
 
+## Sensibilidade do Método de Correlação
+
+### Paramentros do método de correlação
+Dados de treino
+
+1702 imagens positivas
+
+Janelas de pixels (patch) de $11\times 11$, $13\times 13$ à $23\times 23$
+
+### Curvas ROC $(1-SPEC)\times(SENS)$
+
+Descreve a fração de verdadeiros positivos $(FVP)$ em função da fração de falsos positivos $(FFP)$
+
+Sensibilidade:
+\[
+FVP = \frac{VP}{VP+FN} = \frac{VP}{P}
+\]
+
+
+1 - Especificidade: 
+\[
+FFP = \frac{FP}{FP+VN} = \frac{FP}{N}
+\]
+
+Dados de teste
+
+425 imagens positivas $(P=425)$
+
+1000 imagens negativas $(N=1000)$
+
+pesquisa em janelas de pixels de $5\times 5$, $7\times 7$ e $9\times 9$ centradas na média dos pontos chaves das imagens de treino.
+\\\\\\\\
+Fixando a pesquisa em janelas de pixels de $7\times 7$ e variando o tamanho do patch, vem:
+
+<img src="./figs/curvas_roc_patch_(11-por-11).png" height="600px" width="450px" />
+<img src="./figs/curvas_roc_patch_(13-por-13).png" height="600px" width="450px" />
+<img src="./figs/curvas_roc_patch_(15-por-15).png" height="600px" width="450px" />
+<img src="./figs/curvas_roc_patch_(17-por-17).png" height="600px" width="450px" />
+<img src="./figs/curvas_roc_patch_(19-por-19).png" height="600px" width="450px" />
+<img src="./figs/curvas_roc_patch_(21-por-21).png" height="600px" width="450px" />
+<img src="./figs/curvas_roc_patch_(23-por-23).png" height="600px" width="450px" />
+
+Fixando o tamanho do patch em janelas de $11\times 11$ pixels e variando a janela de pesquisa, vem:
+
+<img src="./figs/curvas_roc_pesquisa_(5-por-5).png" height="600px" width="450px" />
+<img src="./figs/curvas_roc_pesquisa_(7-por-7).png" height="600px" width="450px" />
+<img src="./figs/curvas_roc_pesquisa_(9-por-9).png" height="600px" width="450px" />
 
 ## Método de Viola-Jones
 
-Ver [@viola_jones_paper2001]
+Ver [@viola_jones_paper2001] [@jones2001robust]
 
 1. Representação Integral e extração de *features* retangulares
 2. Construção de classificadores através da seleção de Features com AdaBoost
@@ -338,8 +385,8 @@ $$ \text{feature} = (\text{soma rets. brancos}) - (\text{soma rets. pretos}) $$
 * A utilização  de todo o conjunto de *features* é proibitiva    
 * Objetivo: combinar um número pequeno de *features* para formar um classificador efetivo
 * *AdaBoost*: usado para selecionar um pequeno número de *features*
-* *Weak learners*: classificadores simples (ao menos melhores que chute aleatório)
-* *Boosting*: provê a habilidade de treinar um classificador (*strong*) com alta acurácia a partir da combinação linear das decisões feitas por *weak learners* $$f = \alpha_0 f_0 + \alpha_1 f_1 + \cdots + \alpha_N f_N$$
+* *Weak learners*: classificadores simples
+* *Boosting*: treinamento de um classificador (*strong*) com alta acurácia a partir da combinação linear das decisões feitas por *weak learners* $$f = \alpha_0 f_0 + \alpha_1 f_1 + \cdots + \alpha_N f_N$$
 
 ## *Strong Classifiers* em cascata
 * Formado por estágios
@@ -363,6 +410,7 @@ $$ \text{feature} = (\text{soma rets. brancos}) - (\text{soma rets. pretos}) $$
 * Amostra positiva classificada erroneamente como negativa (falso-negativo): é descartada, isto é, não é usada no treinamento dos estágios seguintes
 * Amostras positivas podem se esgotar antes que todos os estágios estejam treinados
 
+![cascadeTraining](./figs/cascadeTraining.png)
 
 ### Relações de compromisso:
 * **Mais estágios**:
@@ -372,7 +420,7 @@ $$ \text{feature} = (\text{soma rets. brancos}) - (\text{soma rets. pretos}) $$
     * Necessita de mais imagens negativas para treinamento (somente falsos-positivos são passados como imagens negativas aos estágios seguintes)
 
 ### Práticas
-* Como a base de dados é relativamente grande, pode-se aumentar o número de estágios e relaxar (aumentar) as especificações de taxa de falsos-positivos em cada estágio (alvo)
+* Como a base de dados é relativamente grande, pode-se aumentar o número de estágios e relaxar (aumentar) as especificações de taxa de falsos-positivos em cada estágio (menos *weak learners* em cada estágio)
 * Para economizar tempo, tunar os parâmetros usando *features* LBP ou HOG
 * Geração de amostras positivas a partir de rotações, adição de ruído ou mudança de contraste
 * Utilizar imagens negativas com fundos e cenários semelhantes às imagens positivas
