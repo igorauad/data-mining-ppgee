@@ -137,6 +137,8 @@ mean.patch <- meanPatch(coord, patch_size, TRUE)
 
 ## Predição
 
+Ver [@kaggleTutorial]
+
 * Correlação cruzada entre os pixels de *patch* médio e de uma região de busca na imagem
 * Região de busca definida como um *grid*, em cujas coordenadas o *patch* médio é centrado iterativamente
 * Detecção: coordenadas nas quais encontra-se a maior correlação
