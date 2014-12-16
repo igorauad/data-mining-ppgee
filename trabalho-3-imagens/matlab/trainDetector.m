@@ -1,7 +1,5 @@
 load('data/training.mat')
 
-nImages = length(training);
-
 feature = 'mouth_center_bottom_lip';
 negCollectionPath = 'img/negatives/';
 posCollectionPath = 'img/positives/';
@@ -11,11 +9,12 @@ nTraining = length(training);
 feature_x = [feature, '_x'];
 feature_y = [feature, '_y'];
 
-% Inspected exceptions
-exceptions = [1908];  
+% Imagens usadas para teste no R
+testIdx = csvread('data/testIdx_semAspas.csv', 1, 0);
+trainIdx = setdiff((1:nTraining).', testIdx(:,2));
 
-% Removed them:
-training(exceptions) = [];
+% Actual training set:
+training = training(trainIdx);
 
 %% Plot gallery
 
@@ -26,10 +25,9 @@ end
 
 %% Inspect image
 
-iImage = 50;
+iImage = 40;
 
-filename = [posCollectionPath, 'img', num2str(iImage, '%1.4d'), '.png'];
-I = imread(filename);
+I = training(iImage).Image / 255;
 I = imadjust(I);
 
 % Mouth coordinates
@@ -71,8 +69,6 @@ imshow(IFaces)
 
 nImages = length(training);
 
-posCollectionPath = 'imgCollection/';
-
 for iImage = 1:nImages
     % Mouth coordinates
     mouth_left_corner(1) = training(iImage).mouth_left_corner_x;
@@ -99,7 +95,7 @@ for iImage = 1:nImages
         topLeftCornerY, ...
         box_width, box_height];
     
-    positiveData(iImage).imageFilename = [posCollectionPath, 'img', num2str(iImage, '%1.4d'), '.png'];
+    positiveData(iImage).imageFilename = [posCollectionPath, 'img', num2str(trainIdx(iImage), '%1.4d'), '.png'];
     positiveData(iImage).objectBoundingBoxes = bbox;
 end
 
@@ -152,10 +148,21 @@ end
 % Effectively remove image entrys containin NaNs:
 positiveData(del_ix) = [];
 
+%% Exclude exceptions
+exceptions = [1451];  
+positiveData(exceptions) = [];
+
+%% Inspect one rectangle from "positiveData" struct array
+
+iImg = 1451;
+
+I = imread(positiveData(iImg).imageFilename);
+IMouth = insertObjectAnnotation(I, 'rectangle', positiveData(iImg).objectBoundingBoxes, 'Mouth');
+imshow(IMouth)
+
 %% Train detector
 
-trainCascadeObjectDetector('mouthDetector.xml', positiveData, negCollectionPath, ...
-    'FalseAlarmRate', 0.2, ...
-    'NumCascadeStages', 5, ...
-    'FeatureType', 'Haar', ...
-    'ObjectTrainingSize', [40 20]);
+trainCascadeObjectDetector('mouthDetectorLBP.xml', positiveData, negCollectionPath, ...
+    'FalseAlarmRate', 0.4, ...
+    'NumCascadeStages', 7, ...
+    'FeatureType', 'LBP');
