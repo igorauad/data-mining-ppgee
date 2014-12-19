@@ -7,7 +7,7 @@ negCollectionPath = 'img/negatives/';
 %% Load detector
 % detector_choice = 'Mouth'; % MATLAB's mouth classifier
 % detector_choice = 'mouthDetector_FAR0.2_numStages5.xml';
-detector_choice = 'mouthDetector_FAR0.2_numStages10.xml';
+detector_choice = 'mouthDetector_FAR0.2_numStages10(7estagios).xml';
 
 detector = vision.CascadeObjectDetector(detector_choice);
 
@@ -18,12 +18,15 @@ falsePositives = 0;
 trueNegatives = 0;
 
 
-searchVector = load('allnegIndices.txt');
+%searchVector = load('allnegIndices.txt');
 
 
-% indexPicToBeShown is the index of the indexPicToBeShown'th
-% false positive picture.
-indexPicToBeShown = randi( [1 100] );
+% indices of negative test pictures
+searchVector = load('negTestIndices.txt');
+
+
+% index of negative picture to be shown
+indexNegPicToBeShown = randi( [1, 100] );
 
 falsePositivesIndices = zeros(1, length(searchVector));
 trueNegativesIndices = zeros(1, length(searchVector));
@@ -80,7 +83,7 @@ for i = 1:length(searchVector)
         % record the indices of the false positive images
         falsePositivesIndices(falsePositives) = iImage;
         
-        if falsePositives == indexPicToBeShown
+        if falsePositives == indexNegPicToBeShown
             imageToBeShown = I;
             
             % Top left and bottom right coordinates:

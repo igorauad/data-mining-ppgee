@@ -7,58 +7,56 @@ posCollectionPath = 'img/positives/';
 negCollectionPath = 'img/negatives/';
 
 
-%% Read the file containing the indices of the positive test images
-
-% reads csv ignoring the first row
-posIndices = csvread('data/testIdx_semAspas.csv', 1, 0);
 
 %% Load detector
 % detector_choice = 'Mouth'; % MATLAB's mouth classifier
 % detector_choice = 'mouthDetector_FAR0.2_numStages5.xml';
-detector_choice = 'mouthDetector_FAR0.2_numStages10.xml';
+detector_choice = 'mouthDetector_FAR0.2_numStages10(7estagios).xml';
+
 
 detector = vision.CascadeObjectDetector(detector_choice);
 
-% switch detector_choice
-%     case 'Matlab'
-%         detector = vision.CascadeObjectDetector('Mouth);
-%     case 'Ours'
-%         detector = vision.CascadeObjectDetector('mouthDetector.xml');
-% end
 
 %% Bounding Boxes
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%% indices of positive test images %%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+searchVector = load('posTestIndices.txt');
+
+% % test the 20% positive images that were not used in the training process
+% [posDataIndices, posDataFilenames] = ...
+%     textread('positiveData.txt', '%d %s', 'delimiter', '\n');
+% 
+% 
+% posTrainIndices = load('posTrainIndices.txt');
+% 
+% % the test indices are those not present in posTrainIndices array
+% positiveDataTestIndices = setxor(posDataIndices, posTrainIndices);
+% 
+% % correct positive image indices (this file will be used in R!!!)
+% pfpos_correct = fopen('posTrainIndices_correct.txt', 'w');
+% 
+% searchVector = zeros(1, length(positiveDataTestIndices));
+% 
+% % get indices of images from filenames
+% for i=1:length(positiveDataTestIndices)
+%     positiveFilename = char( posDataFilenames(positiveDataTestIndices(i)) );
+%     searchVector(i) = str2num(positiveFilename(18:21));
+% 
+%     fprintf(pfpos_correct, '%d\n', searchVector(i));
+% end
+% 
+% fclose(pfpos_correct);
+
+
 somaErrosQuadrados = zeros(1,4);
 numberValidPictures = zeros(1,4);
 
 
 truePositives = 0;
 falseNegatives = 0;
-
-% indices of positive test images
-if strcmp(detector_choice, 'Mouth') == 1
-    % if it is the MATLAB classifier, use all positive images for testing
-    searchVector = 1:7048;
-    
-else
-    % if it is one of our classifiers, test the 20% positive images that
-    % were not used in the training process
-    [posDataIndices, posDataFilenames] = ...
-        textread('positiveData.txt', '%d %s', 'delimiter', '\n');
-    
-    
-    posTrainIndices = load('posTrainIndices.txt');
-    
-    % the test indices are those not present in posTrainIndices array
-    positiveDataTestIndices = setxor(posDataIndices, posTrainIndices);
-    
-    searchVector = zeros(1, length(positiveDataTestIndices));
-    % get indices of images from filenames
-    for i=1:length(positiveDataTestIndices)
-        positiveFilename = char( posDataFilenames(positiveDataTestIndices(i)) );
-        searchVector(i) = str2num(positiveFilename(18:21));
-    end
-    
-end
 
 
 % quantity of positive images with valid detected and real bounding boxes
@@ -67,16 +65,16 @@ qtyValidRealDetectedPositives = 0;
 % quantity of positive images with valid real mouth box
 qtyValidRealPositives = 0;
 
-% indexPicToBeShown is the index of the indexPicToBeShown'th
-% good positive picture.
-indexPicToBeShown = randi( [1 100] );
+
+% index of positive picture to be shown
+indexPosPicToBeShown = searchVector( randi( [1, length(searchVector)] ) );
 
 truePositivesIndices = zeros(1, length(searchVector));
 falseNegativesIndices = zeros(1, length(searchVector));
 
 for i = 1:length(searchVector)
     
-    iImage = searchVector(i); %posIndices(i,2);
+    iImage = searchVector(i);
     
     filename = [posCollectionPath, 'img', num2str(iImage, '%1.4d'), '.png'];
     
@@ -112,6 +110,7 @@ for i = 1:length(searchVector)
             || any(isnan(mouth_center_top_lip)) || any(isnan(mouth_center_bottom_lip))
         
         continue;
+        
     end
     
     
@@ -217,7 +216,7 @@ for i = 1:length(searchVector)
         detected_mouth_left_corner = detectedBox_bottomRight - [0, detectedBox_height/2];
         detected_mouth_center_top_lip = detectedBox_topLeft + [detectedBox_width/2 0];
         detected_mouth_center_bottom_lip = detectedBox_topLeft + ...
-            [detectedBox_width/2 detectedBox_height];
+            [detectedBox_width/2, detectedBox_height];
         
         
         % Save number of valid pictures in a vector
@@ -265,7 +264,7 @@ for i = 1:length(searchVector)
         
         % Sum of the errors:
         somaErrosQuadrados = somaErrosQuadrados + ...
-            [error_leftCorner error_bottomCenter error_rightCorner error_topCenter];
+            [error_leftCorner, error_bottomCenter, error_rightCorner, error_topCenter];
         
         
         % if all errors are different than zero, it means that all features
@@ -275,7 +274,8 @@ for i = 1:length(searchVector)
             
             qtyValidRealDetectedPositives = qtyValidRealDetectedPositives + 1;
             
-            if qtyValidRealDetectedPositives == indexPicToBeShown
+            %if qtyValidRealDetectedPositives == indexPicToBeShown
+            if iImage == indexPosPicToBeShown
             
             % para mostrar a imagem que aparece no slide 18 da apresentacao
             %if iImage == 231
@@ -330,22 +330,6 @@ fprintf('False Negative Rate (FNR) = %f %%\n', FNR);
 
 %% Check Detected Coordinates
     
-% % Real
-% imshow(insertMarker(I, [mouth_left_corner; ...
-%     mouth_right_corner; ...
-%     mouth_center_top_lip; ...
-%     mouth_center_bottom_lip]))
-% 
-% % Detected
-% imshow(insertMarker(I, [detected_mouth_left_corner; ...
-%     detected_mouth_right_corner; ...
-%     detected_mouth_center_top_lip; ...
-%     detected_mouth_center_bottom_lip]))
-% 
-% % Show detection:
-% IFaces = insertObjectAnnotation(I, 'rectangle', [real_box; detected_box_mouth], ...
-%     'Mouth', 'color', {'red', 'green'});
-% imshow(IFaces);
 
 clear IFaces
 

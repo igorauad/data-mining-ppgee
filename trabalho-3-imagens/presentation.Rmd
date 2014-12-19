@@ -1,7 +1,7 @@
 ---
 title: "Detecção de pontos em Imagens"
 author: 'G4: Edinaldo de Alencar / Igor Freire / Ramon Araújo / Ricardo Ribeiro'
-date: "16 de dezembro de 2014"
+date: "18 de dezembro de 2014"
 output:
   slidy_presentation:
     incremental: yes
@@ -34,7 +34,7 @@ load('./matlab/data/data.Rd')
 
 #### Desafio disponível no *kaggle.com*: "Facial Keypoints Detection''
 
-* Base de treinamento contendo 7049 imagens positivas e suas coordenadas de pontos chaves: Olhos, Sobrancelhas, Nariz e Boca. Também há 3019 imagens negativas.
+* Base de treinamento contendo 7049 imagens positivas e suas coordenadas de pontos chaves: Olhos, Sobrancelhas, Nariz e Boca. Também há 3019 imagens negativas
 * Base de teste com 1783 imagens
 
 ![Base de Imagens Faciais](./figs/gallery.png)
@@ -48,27 +48,39 @@ load('./matlab/data/data.Rd')
 
 Dados disponíveis na base:
 
-- 'mouth_left_corner': canto esquerdo
-- 'mouth_right_corner': canto direito
-- 'mouth_center_top_lip': centro do lábio superior
-- 'mouth_center_bottom_lip': centro do lábio inferior 
+- $\text{mouth_left_corner}$: canto esquerdo
+- $\text{mouth_right_corner}$: canto direito
+- $\text{mouth_center_top_lip}$: centro do lábio superior
+- $\text{mouth_center_bottom_lip}$: centro do lábio inferior 
+
 
 ### Métrica de Avaliação
 - RMSE entre as coordenadas detectadas e verdadeiras
 
+
 ## Fluxo de Trabalho
 
 ![Fluxo de Trabalho](./figs/workflow.png)
+
+
 
 ## Pré-processamento
 
 - Atribuir identificador `NaN` para dados (coordenadas) ausentes
 - Converter imagens dadas na base como vetores 'Char' para matrizes `Int8` de dimensões $96 \times 96$
 - Para o MATLAB, dividir estas matrizes por 255 e salvar as matrizes resultantes (com elementos no intervalo de 0 a 1) representativas de imagens em *grayscale*
+- Detecção de *outliers*:
+
+![Exemplo Outlier](./figs/exemplo_outlier.png)
+
+
+
 
 ## Separação de Dados
 
-- Separam-se os dados da base de treinamento em novos conjuntos: 
+- Os outliers e as imagens positivas com coordenadas da boca ausentes são descartadas
+
+- As imagens restantes da base de treinamento são separadas em novos conjuntos: 
     - **Treino:** 80% 
     - **Teste:** 20% 
 
@@ -135,7 +147,7 @@ patch_size <- 15
 mean.patch <- meanPatch(coord, patch_size, TRUE) 
 ```
 
-## Predição
+## Método Correlação - Predição
 
 Ver [@kaggleTutorial]
 
@@ -275,6 +287,9 @@ ytop <- 96 - d_mouth_center_top_lip[2]
 rect(xleft, ybottom, xright, ytop, lwd=2, border="green" );
 ```
 
+
+
+
 ## Método Correlação - Observações
 
 * Acurácia satisfatória
@@ -282,40 +297,46 @@ rect(xleft, ybottom, xright, ytop, lwd=2, border="green" );
     * a dimensão do *patch* 
     * o campo de busca
 * **Desvantagem: Custo computacional extremamente elevado**
+    * A execução no conjunto de teste demorou ~11 min!
+
+
+
 
 ## Sensibilidade do Método de Correlação
 
-### Paramentros do método de correlação
-Dados de treino
+### Parâmetros do método de correlação
+* Dados de treino
 
-1702 imagens positivas
+* 1702 imagens positivas
 
-Janelas de pixels (patch) de $11\times 11$, $13\times 13$ à $23\times 23$
+* Janelas de pixels *(patch)* de $11\times 11$, $13\times 13$ a $23\times 23$
+
 
 ### Curvas ROC $(1-SPEC)\times(SENS)$
 
-Descreve a fração de verdadeiros positivos $(FVP)$ em função da fração de falsos positivos $(FFP)$
+* Descreve a fração de verdadeiros positivos $(FVP)$ em função da fração de falsos positivos $(FFP)$
 
-Sensibilidade:
-\[
-FVP = \frac{VP}{VP+FN} = \frac{VP}{P}
-\]
+* **Sensibilidade:** $$ FVP = \frac{VP}{VP+FN} = \frac{VP}{P} $$
 
 
-1 - Especificidade: 
-\[
-FFP = \frac{FP}{FP+VN} = \frac{FP}{N}
-\]
+* **Especificidade:** $$ FFP = \frac{FP}{FP+VN} = \frac{FP}{N} $$
 
-Dados de teste
+* Dados de teste
 
-425 imagens positivas $(P=425)$
+    * 425 imagens positivas $(P=425)$
 
-1000 imagens negativas $(N=1000)$
+    * 1000 imagens negativas $(N=1000)$
 
-pesquisa em janelas de pixels de $5\times 5$, $7\times 7$ e $9\times 9$ centradas na média dos pontos chaves das imagens de treino.
-\\\\\\\\
-Fixando a pesquisa em janelas de pixels de $7\times 7$ e variando o tamanho do patch, vem:
+
+
+## Sensibilidade do Método de Correlação
+
+
+### Curvas ROC $(1-SPEC)\times(SENS)$
+
+Pesquisa em janelas de pixels de $5\times 5$, $7\times 7$ e $9\times 9$ centradas na média dos pontos-chave das imagens de treino.
+
+Fixando a pesquisa em janelas de pixels de $7\times 7$ e variando o tamanho do *patch*, vem:
 
 <img src="./figs/curvas_roc_patch_(11-por-11).png" height="600px" width="450px" />
 <img src="./figs/curvas_roc_patch_(13-por-13).png" height="600px" width="450px" />
@@ -325,7 +346,7 @@ Fixando a pesquisa em janelas de pixels de $7\times 7$ e variando o tamanho do p
 <img src="./figs/curvas_roc_patch_(21-por-21).png" height="600px" width="450px" />
 <img src="./figs/curvas_roc_patch_(23-por-23).png" height="600px" width="450px" />
 
-Fixando o tamanho do patch em janelas de $11\times 11$ pixels e variando a janela de pesquisa, vem:
+Fixando o tamanho do *patch* em janelas de $11\times 11$ pixels e variando a janela de pesquisa, vem:
 
 <img src="./figs/curvas_roc_pesquisa_(5-por-5).png" height="600px" width="450px" />
 <img src="./figs/curvas_roc_pesquisa_(7-por-7).png" height="600px" width="450px" />
@@ -434,6 +455,10 @@ $$ \text{feature} = (\text{soma rets. brancos}) - (\text{soma rets. pretos}) $$
 ![Reconhecimento com Correlacao](./figs/correlacao_comparacao2.png)
 -->
 
+
+
+
+
 ## Viola-Jones: Detectores no MATLAB
 
 <!--
@@ -445,11 +470,11 @@ $$ \text{feature} = (\text{soma rets. brancos}) - (\text{soma rets. pretos}) $$
 * É possível também treinar um classificador por meio da função $$ \begin{aligned} \text{trainCascadeObjectDetector}&\text{(outputXML, positiveData, negativeData,} \\ &\text{'FalseAlarmRate', FAR} \\ &\text{'TruePositiveRate', TPR,} \\ &\text{'NumCascadeStages', numStages,} \\ &\text{'FeatureType', 'Haar',} \\ & \text{'ObjectTrainingSize', [height width])} \end{aligned} $$
 
 
-* Detectores Utilizados nos testes:
+* Detectores Utilizados nos Testes:
 
 1. Classificador da toolbox `Computer Vision` do MATLAB
 2. Classificador treinado com 5 estágios, $FAR=0.2$, $TPR=0.995$ e FeatureType = Haar
-3. Classificador treinado com 8 estágios, $FAR=0.2$, $TPR=0.995$ e FeatureType = Haar
+3. Classificador treinado com 7 estágios, $FAR=0.2$, $TPR=0.995$ e FeatureType = Haar
 
 
 ## Viola-Jones: Detecção de bocas no MATLAB
@@ -463,32 +488,6 @@ $$ \text{feature} = (\text{soma rets. brancos}) - (\text{soma rets. pretos}) $$
 * A partir do *bounding box* da boca, são estimadas as posições dos cantos esquerdo e direito da boca, e os centros dos lábios inferior e superior.
 
 ![localizacao_pontos_base_viola_jones](./figs/comparacao_pontos_boca_ViolaJones.png)
-
-
-
-## Viola-Jones: Resultados
-
-
-### Acurácia
-
-
-* Primeiramente, toma-se o erro médio quadrático, de forma independente, entre os 4 pontos real e detectado
-
-* O RMSE geral é a média aritmética entre os 4 RMSEs acima
-
-
-![RMSEs Viola Jones](./figs/RMSEs_violaJones.png)
-
-
-
-<!--
-* Detector disponível no *toolbox Computer Vision* no MATLAB: $$\text{RMSE(canto esquerdo)} = 2.7634 \\ \text{RMSE(lábio inferior)} = 3.0972 \\ \text{RMSE(canto direito)} = 2.5832 \\ \text{RMSE(lábio superior)} = 2.4417 \\ \text{RMSE} = 2.7214$$
-
-
-* Classificador treinado de $5$ estágios: $$\text{RMSE(canto esquerdo)} = 3.9085 \\ \text{RMSE(lábio inferior)} = 3.4108 \\ \text{RMSE(canto direito)} = 3.9426 \\ \text{RMSE(lábio superior)} = 3.8654 \\ \text{RMSE} = 3.7818$$
-
-* Classificador treinado de $8$ estágios: $$\text{RMSE(canto esquerdo)} = 4.0883 \\ \text{RMSE(lábio inferior)} = 3.6187 \\ \text{RMSE(canto direito)} = 4.1387 \\ \text{RMSE(lábio superior)} = 4.148 \\ \text{RMSE} = 3.9984$$
--->
 
 
 
@@ -514,9 +513,34 @@ $$ \text{feature} = (\text{soma rets. brancos}) - (\text{soma rets. pretos}) $$
 
 
 
+
+## Acurácia - Viola-Jones x Correlação
+
+
+
+* Primeiramente, toma-se o erro médio quadrático (RMSE), de forma independente, das distâncias entre o ponto real e detectado de cada uma das 4 coordenadas da boca
+
+* O RMSE geral é a média aritmética entre os 4 RMSEs acima
+
+
+![RMSEs](./figs/RMSEs.png)
+
+
+
+<!--
+* Detector disponível no *toolbox Computer Vision* no MATLAB: $$\text{RMSE(canto esquerdo)} = 2.7634 \\ \text{RMSE(lábio inferior)} = 3.0972 \\ \text{RMSE(canto direito)} = 2.5832 \\ \text{RMSE(lábio superior)} = 2.4417 \\ \text{RMSE} = 2.7214$$
+
+
+* Classificador treinado de $5$ estágios: $$\text{RMSE(canto esquerdo)} = 3.9085 \\ \text{RMSE(lábio inferior)} = 3.4108 \\ \text{RMSE(canto direito)} = 3.9426 \\ \text{RMSE(lábio superior)} = 3.8654 \\ \text{RMSE} = 3.7818$$
+
+* Classificador treinado de $8$ estágios: $$\text{RMSE(canto esquerdo)} = 4.0883 \\ \text{RMSE(lábio inferior)} = 3.6187 \\ \text{RMSE(canto direito)} = 4.1387 \\ \text{RMSE(lábio superior)} = 4.148 \\ \text{RMSE} = 3.9984$$
+-->
+
+
+
+
+
 ## Referências
-
-
 
 
 

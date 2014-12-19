@@ -3,16 +3,19 @@
 #registerDoMC()
 
 library(foreach)
-load('matlab/data/data.Rd')
+load('matlab/data/data_MATLAB.Rd')
 
-# Concatenate d.train and d.test and order the resulting dataframe by row names.
-# This is done so that d.train is identical to training.mat, used by MATLAB.
-d.train <- rbind(d.train, d.test);
-d.train <- d.train[ order( as.integer(row.names(d.train)) ), ];
+# # Concatenate d.train and d.test and order the resulting dataframe by row names.
+# # This is done so that d.train is identical to training.mat, used by MATLAB.
+# d.train <- rbind(d.train, d.test);
+# d.train <- d.train[ order( as.integer(row.names(d.train)) ), ];
 
-# Do the same for im.train and im.test
-im.train <- rbind(im.train, im.test);
-im.train <- im.train[ order( as.integer(substring(row.names(im.train), 8)) ), ];
+# # Do the same for im.train and im.test
+# im.train <- rbind(im.train, im.test);
+# im.train <- im.train[ order( as.integer(substring(row.names(im.train), 8)) ), ];
+
+
+
 
 # visualize image
 # Reverse because R's image function expects the origin to be in the lower left corner
@@ -77,7 +80,7 @@ err
 
 
 # read matlab/data/testIdx.csv to get the indices of the test images
-testIndices <- read.csv(file="./matlab/data/testIdx.csv", header=TRUE, sep=",", colClasses=c("NULL", NA))
+# testIndices <- read.csv(file="./matlab/data/testIdx.csv", header=TRUE, sep=",", colClasses=c("NULL", NA))
 
 
 # Iterate over the train images without NAN-entries (indices from 1 to 470 in targetIdx)
@@ -85,8 +88,18 @@ testIndices <- read.csv(file="./matlab/data/testIdx.csv", header=TRUE, sep=",", 
 # NOTE: for many the chosen feature may be missing
 # nrow(d.test)
 
-targetIdx <- testIndices[1:50,1] #1:470
-features <- cbind("mouth_center_top_lip", "mouth_center_bottom_lip", "mouth_left_corner", "mouth_right_corner")
+#targetIdx <- testIndices[1:50,1] #1:470
+
+# indices of test images
+targetIdx <- 1:nrow(d.test)
+
+
+
+# Adjusted features array to be in the same order as in MATLAB
+features <- cbind("mouth_left_corner", "mouth_center_bottom_lip", "mouth_right_corner", "mouth_center_top_lip")
+
+# Count time for testing
+beginTimestamp <- Sys.time()
 
 i_RMSEs <- 0
 
@@ -119,14 +132,23 @@ RMSEs <- foreach(coord = features, .combine=rbind) %do% { #%dopar% {
   rmse
 }
 
+# Count time for testing
+endTimestamp <- Sys.time()
+
+testingTime <- endTimestamp-beginTimestamp
+testingTime
+
+
 RMSE_global <- mean(RMSEs)
+
+print(RMSEs)
 print(RMSE_global)
 
 
 # Show comparison of real vs detected bounding boxes for test figure #50
 #iImg = 170; #testIndices[10,1]
-iImg = testIndices[8,1]
-im  <- matrix(data=rev(im.train[iImg,]), nrow=96, ncol=96)
+iImg = targetIdx[8]
+im  <- matrix(data=rev(im.test[iImg,]), nrow=96, ncol=96)
 #im  <- matrix(data=im.train[iImg,], nrow=96, ncol=96)
 image(1:96, 1:96, im, col=gray((0:255)/255))
 
@@ -159,9 +181,6 @@ detected_rightCorner = 96 - points[4,];
 
 rect( detected_leftCorner[1], detected_bottomLip[2], detected_rightCorner[1], detected_topLip[2], lwd=2, border="green" );
 
-png(filename="figs/correlation_comparison.png")
-plot(fit)
-dev.off()
 
 
 # coord = "mouth_left_corner"
@@ -203,8 +222,6 @@ dev.off()
 #   print(rmse)
 #   rmse  
 # }
-
-
 
 
 
